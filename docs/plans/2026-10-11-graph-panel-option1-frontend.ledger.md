@@ -39,4 +39,4 @@
 
 ## T3 실 백엔드 통합 검증
 
-Backend main 34aae81 + Frontend main 09ce861. 스펙 6-2 체크리스트 1~10 통과, 완료 조건 4 통과. 11번(같은 질문 두 번 → 좌표 동일)은 백엔드 키워드 추출이 호출마다 달라 그래프 노드 집합이 93개/98개로 바뀌어 실패. 프론트 배치 고정은 목 모드로 증명됨. 상세는 `.claude/reports/t2-checklist.md`의 T3 절.
+Backend main 34aae81 + Frontend main 09ce861. 스펙 6-2 체크리스트 1~10 통과, 완료 조건 4 통과. 11번(같은 질문 두 번 → 좌표 동일)은 처음에 백엔드 키워드 추출이 호출마다 달라 실패했으나, 백엔드 a40f3e5(의도 분석 캐시·temperature 0) 뒤 재검증에서 노드 집합·순서·좌표가 전부 동일해 통과. 상세는 `.claude/reports/t2-checklist.md`의 T3 절.
