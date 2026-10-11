@@ -76,7 +76,8 @@ node --test "tests/*.test.js"
 | `answer` | AI 답변 |
 | `graph.nodes[]`: `id`, `name`, `label`, `degree`, `is_seed`, `match_date` | 그래프, 엔티티 레일, 통계 칩, 날짜 스트립 |
 | `graph.nodes[].props` | 응답 계약에는 있지만 화면은 아직 읽지 않습니다(경기 점수는 `/node` 의 `match` 에서 읽습니다) |
-| `graph.links[]`: `source`, `target`, `type`, `evidence` | 그래프 간선, 관계 필터 칩, 통계 칩 |
+| `graph.links[]`: `source`, `target`, `type` | 그래프 간선, 관계 필터 칩, 통계 칩 |
+| `graph.links[].evidence` | 응답 계약에는 있지만 화면은 읽지 않습니다(근거 문장은 `graph_facts[].evidence.text` 에서 읽습니다) |
 | `graph_facts[]`: `source`, `relation`, `target`, `evidence.text` | 지식그래프 근거 카드와 hover 강조 |
 | `article_chunks` | 통계 칩 "참조 기사" 개수 |
 | `rdb_answer`, `rdb_facts`, `rdb_entities`, `rdb_sql` | RDB 통계 근거 |
@@ -85,7 +86,7 @@ node --test "tests/*.test.js"
 
 | 필드 | 쓰는 곳 |
 |---|---|
-| `id`, `name`, `label`, `degree` | 카드 제목, 라벨, "관계 N" 칩 |
+| `name`, `label`, `degree` | 카드 제목, 라벨, "관계 N" 칩 |
 | `record`: `wins`, `losses` | Team·Player 의 "승 W · 패 L" 칩 |
 | `match`: `score_a`, `score_b`, `match_stage` | Match 의 "점수 · 스테이지" 칩 |
 | `groups[]`: `relation`, `direction`, `neighbors[]`(`id`, `name`, `role`) | 관계 그룹 칩과 이웃 이동 |

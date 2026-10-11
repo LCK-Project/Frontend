@@ -783,9 +783,15 @@
       return [...ids];
     }
 
+    // 레일, 날짜 스트립, 상세 카드 이웃 버튼이 모두 이 경로로 포커스한다.
+    // 대상이 필터로 숨겨져 있으면 먼저 필터를 풀어 보이게 한 뒤 이동한다.
     function focusNode(nodeId) {
-      if (!state.network || !state.nodes.get(nodeId)) return;
+      if (!state.network) return;
+      const target = state.nodes.get(nodeId);
+      if (!target) return;
+      if (target.hidden) applyRelationFilter(FILTER_ALL);
       state.network.focus(nodeId, { scale: 1.2, animation: true });
+      state.network.selectNodes([nodeId]);
     }
 
     // ids 와 그 사이 간선만 원래 색으로 두고 나머지는 회색으로 치환한다.
@@ -1070,10 +1076,7 @@
         title.textContent = point.date;
         circle.appendChild(title);
         circle.addEventListener("click", () => {
-          if (state.network && state.nodes.get(point.id)) {
-            state.network.focus(point.id, { scale: 1.2, animation: true });
-            state.network.selectNodes([point.id]);
-          }
+          focusNode(point.id);
           showNodeDetail(point.id);
         });
       });
@@ -1232,7 +1235,8 @@
         renderGraph(data.graph);
         renderRail(data.graph);
         renderFilterChips(data.graph);
-        renderDateStrip(data.graph);
+        // graph 키가 없거나 null 인 응답도 질문 뒤에는 "없음" 문구를 띄운다.
+        renderDateStrip(data.graph || { nodes: [], links: [] });
         renderRdb(data);
 
         renderFacts(data.graph_facts || []);
