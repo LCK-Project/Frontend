@@ -194,6 +194,48 @@
       min-width: 0;
     }
 
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .filter-chips:empty {
+      display: none;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .chip:hover:not(:disabled) {
+      background: #fff7ed;
+    }
+
+    .chip.active {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #ffffff;
+    }
+
+    .chip:disabled {
+      color: #c4c9d1;
+      cursor: default;
+    }
+
+    .chip-count {
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.8;
+    }
+
     .rail {
       min-width: 0;
       max-height: 560px;
@@ -445,6 +487,7 @@
           <div class="rail-empty">질문하면 엔티티가 여기에 표시됩니다.</div>
         </aside>
         <div class="graph-main">
+          <div id="filterChips" class="filter-chips"></div>
           <div id="graph" class="graph-box"></div>
         </div>
       </div>
@@ -477,7 +520,7 @@
     const MOCK = new URLSearchParams(location.search).get("mock") === "1";
 
     // vis DataSet 과 Network 인스턴스는 이 전역 한 곳에만 둔다.
-    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null };
+    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체" };
 
     // 라벨별 노드 색. 테두리는 배경과 같은 계열에서 한 단계 진한 색이다.
     const GROUP_COLORS = {
@@ -501,6 +544,7 @@
     const FONT_COLOR = "#343434";
     const DIM_FONT_COLOR = "#cbd5e1";
     const RAIL_LIMIT = 12;
+    const FILTER_ALL = "전체";
 
     function groupColor(label) {
       return GROUP_COLORS[label] || GROUP_COLORS.Entity;
@@ -687,6 +731,53 @@
       }
     }
 
+    function renderFilterChips(graph) {
+      const box = document.getElementById("filterChips");
+      box.innerHTML = "";
+      state.filter = FILTER_ALL;
+
+      const nodes = (graph && graph.nodes) || [];
+      const links = (graph && graph.links) || [];
+      if (nodes.length === 0) {
+        box.innerHTML = '<span class="rail-empty">관계 유형이 없습니다</span>';
+        return;
+      }
+
+      const nodesById = Object.fromEntries(nodes.map(node => [node.id, node]));
+      const counts = {};
+      links.forEach(link => {
+        const name = GraphUtils.classifyRelation(link, nodesById, GraphUtils.REL_GROUPS);
+        counts[name] = (counts[name] || 0) + 1;
+      });
+
+      const chips = [{ name: FILTER_ALL, count: links.length }]
+        .concat(GraphUtils.REL_GROUPS.map(group => ({ name: group.name, count: counts[group.name] || 0 })));
+      chips.forEach(chip => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chip";
+        button.dataset.group = chip.name;
+        button.disabled = chip.name !== FILTER_ALL && chip.count === 0;
+        button.innerHTML = `${escapeHtml(chip.name)}<span class="chip-count">${chip.count}</span>`;
+        button.addEventListener("click", () => applyRelationFilter(chip.name));
+        box.appendChild(button);
+      });
+      applyRelationFilter(FILTER_ALL);
+    }
+
+    // 선택한 묶음에 속하지 않는 간선과, 보이는 간선에 닿지 않는 노드를 숨긴다.
+    function applyRelationFilter(groupName) {
+      state.filter = groupName;
+      document.querySelectorAll("#filterChips .chip").forEach(chip => {
+        chip.classList.toggle("active", chip.dataset.group === groupName);
+      });
+      if (!state.nodes) return;
+
+      const visible = GraphUtils.visibleSetForGroup(state.graph, groupName, GraphUtils.REL_GROUPS);
+      state.edges.update(state.edges.getIds().map(id => ({ id, hidden: !visible.linkKeys.has(id) })));
+      state.nodes.update(state.nodes.getIds().map(id => ({ id, hidden: !visible.nodeIds.has(id) })));
+    }
+
     function renderStats(data) {
       const stats = GraphUtils.computeStats(data);
       document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
@@ -799,6 +890,7 @@
         renderStats(data);
         renderGraph(data.graph);
         renderRail(data.graph);
+        renderFilterChips(data.graph);
         renderRdb(data);
 
         chunksDiv.innerHTML = "";
