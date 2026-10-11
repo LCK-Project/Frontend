@@ -183,6 +183,103 @@
       overflow: hidden;
     }
 
+    .graph-body {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .graph-main {
+      min-width: 0;
+    }
+
+    .rail {
+      min-width: 0;
+      max-height: 560px;
+      overflow-y: auto;
+    }
+
+    .rail-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .rail-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      padding: 7px 6px;
+      margin-bottom: 4px;
+      background: transparent;
+      border-radius: 10px;
+      text-align: left;
+      font-weight: 400;
+      color: #111827;
+    }
+
+    .rail-item:hover,
+    .rail-item:focus-visible {
+      background: #fff7ed;
+    }
+
+    .rail-item.hidden {
+      display: none;
+    }
+
+    .rail-item .dot {
+      margin-top: 4px;
+      flex: none;
+    }
+
+    .rail-text {
+      min-width: 0;
+    }
+
+    .rail-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .rail-item .sub {
+      display: block;
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #f59e0b;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+
+    .rail-more {
+      width: 100%;
+      padding: 7px;
+      background: #f3f4f6;
+      color: #4b5563;
+      font-size: 12px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
     .answer-box {
       background: #fff7ed;
       border: 1px solid #fed7aa;
@@ -343,7 +440,14 @@
         </div>
       </div>
 
-    <div id="graph" class="graph-box"></div>
+      <div class="graph-body">
+        <aside id="rail" class="rail">
+          <div class="rail-empty">질문하면 엔티티가 여기에 표시됩니다.</div>
+        </aside>
+        <div class="graph-main">
+          <div id="graph" class="graph-box"></div>
+        </div>
+      </div>
     </section>
 
     <!-- 오른쪽 답변 패널 -->
@@ -391,6 +495,12 @@
       Entity: { background: "#9ca3af", border: "#6b7280" }
     };
     const EDGE_COLOR = "#94a3b8";
+    // 흐림 처리용 색. opacity 옵션 대신 색을 치환한다.
+    const DIM_NODE_COLOR = { background: "#f3f4f6", border: "#e5e7eb" };
+    const DIM_EDGE_COLOR = "#e5e7eb";
+    const FONT_COLOR = "#343434";
+    const DIM_FONT_COLOR = "#cbd5e1";
+    const RAIL_LIMIT = 12;
 
     function groupColor(label) {
       return GROUP_COLORS[label] || GROUP_COLORS.Entity;
@@ -471,6 +581,110 @@
       };
 
       state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
+    }
+
+    function neighborIds(nodeId) {
+      const ids = new Set();
+      ((state.graph && state.graph.links) || []).forEach(link => {
+        if (link.source === nodeId) ids.add(link.target);
+        if (link.target === nodeId) ids.add(link.source);
+      });
+      ids.delete(nodeId);
+      return [...ids];
+    }
+
+    function focusNode(nodeId) {
+      if (!state.network || !state.nodes.get(nodeId)) return;
+      state.network.focus(nodeId, { scale: 1.2, animation: true });
+    }
+
+    // ids 와 그 사이 간선만 원래 색으로 두고 나머지는 회색으로 치환한다.
+    function highlightNodes(ids) {
+      if (!state.nodes) return;
+      const keep = new Set(ids);
+      state.nodes.update(state.nodes.getIds().map(id => ({
+        id,
+        color: keep.has(id) ? { ...state.baseColors[id] } : { ...DIM_NODE_COLOR },
+        font: { color: keep.has(id) ? FONT_COLOR : DIM_FONT_COLOR }
+      })));
+      state.edges.update(state.edges.get().map(edge => {
+        const on = keep.has(edge.from) && keep.has(edge.to);
+        return {
+          id: edge.id,
+          color: { color: on ? EDGE_COLOR : DIM_EDGE_COLOR },
+          font: { color: on ? FONT_COLOR : DIM_FONT_COLOR }
+        };
+      }));
+    }
+
+    function clearHighlight() {
+      if (!state.nodes) return;
+      state.nodes.update(state.nodes.getIds().map(id => ({
+        id,
+        color: { ...state.baseColors[id] },
+        font: { color: FONT_COLOR }
+      })));
+      state.edges.update(state.edges.getIds().map(id => ({
+        id,
+        color: { color: EDGE_COLOR },
+        font: { color: FONT_COLOR }
+      })));
+    }
+
+    // 상세 카드가 붙기 전까지는 아무 일도 하지 않는다.
+    async function showNodeDetail(nodeId) {}
+
+    function renderRail(graph) {
+      const rail = document.getElementById("rail");
+      rail.innerHTML = "";
+
+      const nodes = (graph && graph.nodes) || [];
+      if (nodes.length === 0) {
+        rail.innerHTML = '<div class="rail-empty">엔티티가 없습니다</div>';
+        return;
+      }
+
+      const sorted = GraphUtils.sortNodesForRail(nodes);
+      sorted.forEach((node, index) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "rail-item";
+        item.dataset.id = node.id;
+        if (index >= RAIL_LIMIT) item.classList.add("hidden");
+
+        const badge = node.is_seed === true ? '<span class="badge">핵심</span>' : "";
+        item.innerHTML = `
+          <span class="dot" style="background:${groupColor(node.label).background}"></span>
+          <span class="rail-text">
+            <span class="rail-name">${escapeHtml(node.name)}${badge}</span>
+            <span class="sub">${escapeHtml(GraphUtils.railSubtitle(node))}</span>
+          </span>
+        `;
+
+        item.addEventListener("mouseenter", () => highlightNodes([node.id, ...neighborIds(node.id)]));
+        item.addEventListener("mouseleave", () => clearHighlight());
+        item.addEventListener("click", () => {
+          showNodeDetail(node.id);
+          focusNode(node.id);
+        });
+        rail.appendChild(item);
+      });
+
+      const extra = sorted.length - RAIL_LIMIT;
+      if (extra > 0) {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "rail-more";
+        more.innerText = `+ ${extra}개 더`;
+        more.addEventListener("click", () => {
+          const collapsed = more.innerText !== "접기";
+          rail.querySelectorAll(".rail-item").forEach((item, index) => {
+            item.classList.toggle("hidden", !collapsed && index >= RAIL_LIMIT);
+          });
+          more.innerText = collapsed ? "접기" : `+ ${extra}개 더`;
+        });
+        rail.appendChild(more);
+      }
     }
 
     function renderStats(data) {
@@ -584,6 +798,7 @@
         answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
         renderStats(data);
         renderGraph(data.graph);
+        renderRail(data.graph);
         renderRdb(data);
 
         chunksDiv.innerHTML = "";
