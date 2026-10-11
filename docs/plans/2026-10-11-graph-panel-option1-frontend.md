@@ -15,6 +15,7 @@
 - 새 패키지 설치 금지. CDN 스크립트는 기존 vis-network 하나만.
 - 응답에서 읽는 키는 스펙 4-1(`graph.nodes[]`: `id, name, label, degree, is_seed, match_date, props`, `graph.links[]`: `source, target, type, evidence`)과 4-3(`/node`)에 있는 것만. 없는 키를 만들어 읽지 않는다.
 - 세 열 그리드 `300px minmax(0, 1fr) 380px`, 각 `.panel`에 `min-width: 0`. 1100px 이하 한 열 폴백 유지.
+  (2026-10-11 완주 뒤 사용자 요청으로 두 열 `minmax(0, 7fr) minmax(0, 3fr)`로 바꿨다. 왼쪽이 그래프, 오른쪽이 질의 입력과 결과다. 폴백은 그대로.)
 - vis 옵션 `layout.randomSeed = 42`, `physics.stabilization.iterations = 200`. `opacity` 옵션으로 흐림 처리하지 않는다(색 치환 + `baseColors` 복원).
 - `index.html` 함수 이름 고정: `loadAsk, renderStats, renderRail, renderFilterChips, applyRelationFilter, renderDateStrip, renderGraph, highlightNodes, clearHighlight, showNodeDetail, renderFacts`. 전역 상태는 `state = { network, nodes, edges, baseColors, nodesById, graph }` 하나.
 - 라벨 한글명: Team 팀, Player 선수, Champion 챔피언, Tournament 대회, League 리그, Match 경기, Staff 스태프, Coach 코치, Objective 오브젝트, Object 오브젝트, Entity 엔티티. 그 외 원문.
