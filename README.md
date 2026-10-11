@@ -5,6 +5,25 @@ LCK(리그 오브 레전드 챔피언스 코리아) 지식그래프 질의응답
 `POST /ask` API를 호출해 답변, 관계 그래프(vis-network), RDB 통계를 화면에 그리고,
 그래프에서 고른 노드의 상세는 `GET /node` API로 가져옵니다.
 
+## 빠른 시작(Docker)
+
+```bash
+docker compose up --build
+```
+
+브라우저에서 `http://localhost:5500` 에 접속합니다. 컨테이너가 뜰 때 `API_BASE_URL` 값으로 `config.js` 를 새로 만들어 nginx 가 정적 파일과 함께 서빙합니다.
+
+`API_BASE_URL` 은 컨테이너 안에서가 아니라 사용자 브라우저에서 닿는 백엔드 주소여야 합니다(기본값 `http://localhost:8000`).
+
+| 변수 | 기본값 | 용도 |
+|---|---|---|
+| `API_BASE_URL` | `http://localhost:8000` | 브라우저가 호출할 백엔드 주소 |
+| `WEB_HOST_PORT` | `5500` | 대시보드를 여는 호스트 포트 |
+
+```bash
+API_BASE_URL=http://localhost:9000 WEB_HOST_PORT=8080 docker compose up --build
+```
+
 ## 구성
 
 ```text
