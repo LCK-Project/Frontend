@@ -341,6 +341,96 @@
       display: inline-block;
     }
 
+    .node-detail {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      background: #f9fafb;
+    }
+
+    .node-detail-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .node-detail-error {
+      color: #b91c1c;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .node-detail-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .node-detail-sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .summary-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .summary-chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #92400e;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .group-chip {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .group-name {
+      display: block;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .group-dir {
+      margin-left: 4px;
+      font-weight: 400;
+      color: #9ca3af;
+    }
+
+    .neighbor {
+      padding: 2px 8px;
+      margin-right: 4px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      color: #1f2937;
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .neighbor:hover {
+      background: #fff7ed;
+      border-color: #fed7aa;
+    }
+
+    .neighbor-more {
+      color: #6b7280;
+    }
+
     .answer-box {
       background: #fff7ed;
       border: 1px solid #fed7aa;
@@ -518,6 +608,10 @@
 
     <!-- 오른쪽 답변 패널 -->
     <section class="panel">
+      <section id="nodeDetail" class="node-detail">
+        <div class="node-detail-empty">그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.</div>
+      </section>
+
       <h2>AI 답변 결과</h2>
 
       <div id="answer" class="answer-box empty">
@@ -569,6 +663,9 @@
     const RAIL_LIMIT = 12;
     const FILTER_ALL = "전체";
     const STRIP_PAD = 24;
+    const DETAIL_NEIGHBOR_LIMIT = 5;
+    const DETAIL_EMPTY_TEXT = "그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.";
+    const DETAIL_ERROR_TEXT = "노드 상세를 불러오지 못했습니다";
     const SVG_NS = "http://www.w3.org/2000/svg";
 
     function groupColor(label) {
@@ -650,6 +747,7 @@
       };
 
       state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
+      state.network.on("click", p => p.nodes[0] && showNodeDetail(p.nodes[0]));
     }
 
     function neighborIds(nodeId) {
@@ -700,8 +798,117 @@
       })));
     }
 
-    // 상세 카드가 붙기 전까지는 아무 일도 하지 않는다.
-    async function showNodeDetail(nodeId) {}
+    // 마지막 요청만 카드에 반영하기 위한 순번.
+    let detailSeq = 0;
+    let nodeFixturePromise = null;
+
+    function loadNodeFixture() {
+      if (!nodeFixturePromise) {
+        nodeFixturePromise = fetch("fixtures/node_sample.json").then(response => {
+          if (!response.ok) throw new Error(`픽스처 로드 실패: ${response.status}`);
+          return response.json();
+        });
+        nodeFixturePromise.catch(() => { nodeFixturePromise = null; });
+      }
+      return nodeFixturePromise;
+    }
+
+    function resetNodeDetail() {
+      detailSeq += 1;
+      document.getElementById("nodeDetail").innerHTML =
+        `<div class="node-detail-empty">${DETAIL_EMPTY_TEXT}</div>`;
+    }
+
+    function renderNodeDetail(detail, failed) {
+      const card = document.getElementById("nodeDetail");
+      card.innerHTML = "";
+
+      if (failed) {
+        const error = document.createElement("div");
+        error.className = "node-detail-error";
+        error.innerText = DETAIL_ERROR_TEXT;
+        card.appendChild(error);
+      }
+      if (!detail) return;
+
+      const summary = [`관계 ${detail.degree}`];
+      if ((detail.label === "Team" || detail.label === "Player") && detail.record) {
+        summary.push(`승 ${detail.record.wins} · 패 ${detail.record.losses}`);
+      }
+      if (detail.label === "Match" && detail.match) {
+        summary.push(`${detail.match.score_a}:${detail.match.score_b} · ${detail.match.match_stage}`);
+      }
+
+      const head = document.createElement("div");
+      head.innerHTML = `
+        <div class="node-detail-title">${escapeHtml(detail.name)}</div>
+        <div class="node-detail-sub">${escapeHtml(GraphUtils.labelKo(detail.label))}</div>
+        <div class="summary-chips">
+          ${summary.map(text => `<span class="summary-chip">${escapeHtml(text)}</span>`).join("")}
+        </div>
+      `;
+      card.appendChild(head);
+
+      (detail.groups || []).forEach(group => {
+        const row = document.createElement("div");
+        row.className = "group-chip";
+        row.dataset.relation = group.relation;
+
+        const name = document.createElement("span");
+        name.className = "group-name";
+        name.innerHTML = `${escapeHtml(group.relation)}<span class="group-dir">${group.direction === "out" ? "나가는 관계" : "들어오는 관계"}</span>`;
+        row.appendChild(name);
+
+        const neighbors = group.neighbors || [];
+        neighbors.slice(0, DETAIL_NEIGHBOR_LIMIT).forEach(neighbor => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "neighbor";
+          button.dataset.id = neighbor.id;
+          button.innerText = neighbor.role ? `${neighbor.name} (${neighbor.role})` : neighbor.name;
+          button.addEventListener("click", () => {
+            showNodeDetail(neighbor.id);
+            focusNode(neighbor.id);
+          });
+          row.appendChild(button);
+        });
+        if (neighbors.length > DETAIL_NEIGHBOR_LIMIT) {
+          const more = document.createElement("span");
+          more.className = "neighbor-more";
+          more.innerText = `+${neighbors.length - DETAIL_NEIGHBOR_LIMIT}`;
+          row.appendChild(more);
+        }
+        card.appendChild(row);
+      });
+    }
+
+    // 목 모드: 픽스처에서 id 조회, 없으면 로컬 1홉. 실 모드: /node 조회, 실패하면 실패 문구와 로컬 1홉.
+    async function showNodeDetail(nodeId) {
+      const seq = ++detailSeq;
+      let detail = null;
+      let failed = false;
+
+      try {
+        if (MOCK) {
+          const fixture = await loadNodeFixture();
+          detail = fixture[nodeId] || null;
+        } else {
+          const response = await fetch(`${API_BASE_URL}/node?id=${encodeURIComponent(nodeId)}`);
+          if (!response.ok) throw new Error(`/node 요청 실패: ${response.status}`);
+          detail = await response.json();
+        }
+      } catch (error) {
+        failed = true;
+        detail = null;
+        console.warn(DETAIL_ERROR_TEXT, error);
+      }
+
+      if (!detail) {
+        detail = GraphUtils.localNodeDetail(nodeId, state.graph || { nodes: [], links: [] });
+      }
+      if (seq !== detailSeq) return;
+      renderNodeDetail(detail, failed || !detail);
+    }
 
     function renderRail(graph) {
       const rail = document.getElementById("rail");
@@ -958,6 +1165,7 @@
 
         answerDiv.className = "answer-box";
         answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
+        resetNodeDetail();
         renderStats(data);
         renderGraph(data.graph);
         renderRail(data.graph);
