@@ -3,9 +3,12 @@
 <head>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="config.js"></script>
+  <script src="assets/graph-utils.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LCK Knowledge Graph Dashboard</title>
+  <!-- 파비콘 파일이 없어 생기는 404 콘솔 에러를 막는다. -->
+  <link rel="icon" href="data:," />
 
   <style>
     * {
@@ -13,13 +16,18 @@
       font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
     }
 
+    /* 헤더 높이가 바뀌어도 넘치지 않도록 body 를 세로 flex 로 두고 컨테이너가 남은 높이를 채운다. */
     body {
       margin: 0;
       background: #f6f7fb;
       color: #222;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
     header {
+      flex: none;
       padding: 22px 36px;
       background: #ffffff;
       border-bottom: 1px solid #e5e7eb;
@@ -39,12 +47,14 @@
       font-size: 14px;
     }
 
+    /* 두 열: 왼쪽 70% 그래프, 오른쪽 30% 질의와 결과 */
     .container {
       display: grid;
-      grid-template-columns: 320px 1fr 380px;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
       gap: 20px;
       padding: 24px;
-      height: calc(100vh - 82px);
+      flex: 1;
+      min-height: 0;
     }
 
     .panel {
@@ -54,6 +64,7 @@
       padding: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
       overflow: auto;
+      min-width: 0;
     }
 
     .panel h2 {
@@ -62,9 +73,48 @@
       margin-bottom: 16px;
     }
 
+    /* 그래프 패널은 세로 flex 로 두고 캔버스가 남는 높이를 채운다 */
+    .graph-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .graph-panel .graph-body {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .graph-panel .graph-main {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .graph-panel .graph-box {
+      flex: 1;
+      height: auto;
+      min-height: 320px;
+    }
+
+    .graph-panel .rail {
+      max-height: 100%;
+    }
+
+    .result-panel h2 {
+      font-size: 16px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    .result-panel h2:first-child {
+      margin-top: 0;
+    }
+
     textarea {
       width: 100%;
-      height: 110px;
+      height: 80px;
       resize: none;
       border: 1px solid #d1d5db;
       border-radius: 14px;
@@ -89,7 +139,7 @@
     .ask-btn {
       width: 100%;
       margin-top: 12px;
-      padding: 14px;
+      padding: 12px;
       background: #f59e0b;
       color: white;
       font-size: 15px;
@@ -99,15 +149,20 @@
       background: #d97706;
     }
 
+    /* 추천 질문은 칩 모양으로 한 줄에 흘려 입력 영역을 짧게 유지한다 */
     .suggestions {
-      margin-top: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
     }
 
     .suggestions button {
-      width: 100%;
       text-align: left;
-      padding: 12px;
-      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
       background: #fff7ed;
       color: #92400e;
       border: 1px solid #fed7aa;
@@ -115,19 +170,6 @@
 
     .suggestions button:hover {
       background: #ffedd5;
-    }
-
-    .filters {
-      margin-top: 24px;
-    }
-
-    select {
-      width: 100%;
-      padding: 11px;
-      border-radius: 12px;
-      border: 1px solid #d1d5db;
-      margin-bottom: 10px;
-      background: white;
     }
 
     .main-title {
@@ -143,7 +185,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -152,7 +194,8 @@
       background: #fff7ed;
       border: 1px solid #fed7aa;
       border-radius: 14px;
-      padding: 16px;
+      padding: 14px;
+      min-width: 0;
     }
 
     .stat-card .label {
@@ -162,28 +205,206 @@
     }
 
     .stat-card .value {
-      font-size: 24px;
+      font-size: 16px;
       font-weight: 800;
       color: #111827;
+      line-height: 1.35;
+      word-break: keep-all;
+      overflow-wrap: break-word;
     }
 
     .graph-box {
-    height: 430px;
-    border-radius: 18px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    overflow: hidden;
+      height: 430px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
     }
 
-   
-
-    .legend {
-      margin-top: 14px;
-      display: flex;
+    .graph-body {
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
       gap: 12px;
-      font-size: 13px;
-      color: #6b7280;
+      align-items: start;
+    }
+
+    .graph-main {
+      min-width: 0;
+    }
+
+    .filter-chips {
+      display: flex;
       flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .filter-chips:empty {
+      display: none;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .chip:hover:not(:disabled) {
+      background: #fff7ed;
+    }
+
+    .chip.active {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #ffffff;
+    }
+
+    .chip:disabled {
+      color: #c4c9d1;
+      cursor: default;
+    }
+
+    .chip-count {
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.8;
+    }
+
+    .date-strip {
+      margin-top: 10px;
+      min-height: 56px;
+    }
+
+    #dateStrip {
+      display: block;
+      width: 100%;
+    }
+
+    #dateStrip circle {
+      cursor: pointer;
+    }
+
+    #dateStrip text {
+      font-size: 11px;
+      fill: #6b7280;
+    }
+
+    /* 레일은 테두리 상자 안에 제목 줄을 고정하고 목록만 스크롤한다 */
+    .rail {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      max-height: 560px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .rail-head {
+      flex: none;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .rail-count {
+      margin-left: 6px;
+      font-size: 11px;
+      font-weight: 400;
+      color: #6b7280;
+    }
+
+    .rail-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    .rail-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 6px;
+    }
+
+    .rail-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      padding: 7px 6px;
+      margin-bottom: 4px;
+      background: transparent;
+      border-radius: 10px;
+      text-align: left;
+      font-weight: 400;
+      color: #111827;
+    }
+
+    .rail-item:hover,
+    .rail-item:focus-visible {
+      background: #fff7ed;
+    }
+
+    .rail-item.selected {
+      background: #ffedd5;
+    }
+
+    .rail-item.hidden {
+      display: none;
+    }
+
+    .rail-item .dot {
+      margin-top: 4px;
+      flex: none;
+    }
+
+    .rail-text {
+      min-width: 0;
+    }
+
+    .rail-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .rail-item .sub {
+      display: block;
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #f59e0b;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+
+    .rail-more {
+      width: 100%;
+      padding: 7px;
+      background: #f3f4f6;
+      color: #4b5563;
+      font-size: 12px;
     }
 
     .dot {
@@ -191,7 +412,96 @@
       height: 10px;
       border-radius: 50%;
       display: inline-block;
-      margin-right: 5px;
+    }
+
+    .node-detail {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      background: #f9fafb;
+    }
+
+    .node-detail-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .node-detail-error {
+      color: #b91c1c;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .node-detail-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .node-detail-sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .summary-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .summary-chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #92400e;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .group-chip {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .group-name {
+      display: block;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .group-dir {
+      margin-left: 4px;
+      font-weight: 400;
+      color: #9ca3af;
+    }
+
+    .neighbor {
+      padding: 2px 8px;
+      margin-right: 4px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      color: #1f2937;
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .neighbor:hover {
+      background: #fff7ed;
+      border-color: #fed7aa;
+    }
+
+    .neighbor-more {
+      color: #6b7280;
     }
 
     .answer-box {
@@ -201,7 +511,99 @@
       padding: 16px;
       line-height: 1.7;
       white-space: pre-wrap;
-      min-height: 220px;
+      min-height: 120px;
+    }
+
+    /* 질문 요약 줄. 입력창이 접힌 뒤에 보인다 */
+    .ask-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid #fed7aa;
+      border-radius: 12px;
+      background: #fff7ed;
+      font-size: 13px;
+    }
+
+    .ask-summary-label {
+      flex: none;
+      color: #92400e;
+      font-weight: 700;
+    }
+
+    .ask-summary-text {
+      flex: 1;
+      min-width: 0;
+      color: #111827;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* display:flex 가 hidden 속성을 덮지 않도록 명시한다 */
+    .ask-summary[hidden],
+    .ask-box[hidden] {
+      display: none;
+    }
+
+    .ask-new {
+      flex: none;
+      padding: 4px 10px;
+      font-size: 12px;
+      background: #ffffff;
+      color: #92400e;
+      border: 1px solid #fed7aa;
+    }
+
+    .ask-new:hover {
+      background: #ffedd5;
+    }
+
+    /* 결과 탭 */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-top: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .tab {
+      padding: 8px 12px;
+      border-radius: 10px 10px 0 0;
+      background: transparent;
+      color: #6b7280;
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover {
+      color: #111827;
+    }
+
+    .tab.active {
+      color: #d97706;
+      border-bottom-color: #f59e0b;
+    }
+
+    .tab-count {
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    .tab-count:empty {
+      display: none;
+    }
+
+    .tab-pane {
+      display: none;
+      padding-top: 12px;
+    }
+
+    .tab-pane.active {
+      display: block;
     }
 
     .chunk-card {
@@ -214,9 +616,24 @@
       font-size: 14px;
     }
 
-    .chunk-card h4 {
-      margin: 0 0 8px 0;
-      color: #92400e;
+    .fact-card {
+      cursor: pointer;
+    }
+
+    .fact-card:hover {
+      border-color: #fed7aa;
+      background: #fff7ed;
+    }
+
+    .fact-card.selected {
+      border-color: #f59e0b;
+      background: #ffedd5;
+    }
+
+    .fact-evidence {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #6b7280;
     }
 
     .rdb-box {
@@ -265,9 +682,33 @@
     }
 
     @media (max-width: 1100px) {
+      /* 한 열 폴백에서는 높이 고정을 풀어 페이지 전체가 세로로 스크롤되게 한다. */
+      body {
+        display: block;
+        height: auto;
+      }
+
       .container {
         grid-template-columns: 1fr;
+      }
+
+      /* 한 열에서는 캔버스가 레일 높이를 따라 늘어나지 않도록 고정 높이로 되돌린다 */
+      .graph-panel {
+        display: block;
+        overflow: auto;
+      }
+
+      .graph-panel .graph-main {
         height: auto;
+      }
+
+      .graph-panel .graph-box {
+        flex: none;
+        height: 430px;
+      }
+
+      .graph-panel .rail {
+        max-height: 560px;
       }
 
       .stats {
@@ -280,56 +721,15 @@
 <body>
   <header>
     <div>
-      <h1>🎮 LCK Knowledge Graph Dashboard</h1>
+      <h1>LCK Knowledge Graph Dashboard</h1>
       <span>Neo4j 지식그래프 기반 LCK 질의응답 시스템</span>
     </div>
     <span id="apiStatus">API 연결 대기</span>
   </header>
 
   <main class="container">
-    <!-- 왼쪽 입력 패널 -->
-    <section class="panel">
-      <h2>자연어 질의</h2>
-
-      <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘"></textarea>
-      <button class="ask-btn" onclick="askQuestion()">질문하기</button>
-
-      <div class="suggestions">
-        <h2>추천 질문</h2>
-        <button onclick="setQuestion('젠지 우승 전략을 알려줘')">젠지 우승 전략을 알려줘</button>
-        <button onclick="setQuestion('페이커가 사용한 챔피언을 알려줘')">페이커가 사용한 챔피언을 알려줘</button>
-        <button onclick="setQuestion('T1과 Gen.G의 관계를 알려줘')">T1과 Gen.G의 관계를 알려줘</button>
-        <button onclick="setQuestion('2025 스프링 MVP 관련 내용을 알려줘')">2025 스프링 MVP 관련 내용을 알려줘</button>
-      </div>
-
-      <div class="filters">
-        <h2>필터</h2>
-        <select>
-          <option>전체 기간</option>
-          <option>2025</option>
-          <option>2024</option>
-        </select>
-
-        <select>
-          <option>전체 팀</option>
-          <option>Gen.G</option>
-          <option>T1</option>
-          <option>HLE</option>
-          <option>KT</option>
-        </select>
-
-        <select>
-          <option>전체 분석 유형</option>
-          <option>팀 분석</option>
-          <option>선수 분석</option>
-          <option>경기 분석</option>
-          <option>대회 분석</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- 가운데 대시보드 패널 -->
-    <section class="panel">
+    <!-- 왼쪽 그래프 패널 -->
+    <section class="panel graph-panel">
       <div class="main-title">
         <h2>지식그래프 시각화</h2>
         <span class="status" id="queryStatus">질문을 입력하면 분석이 시작됩니다.</span>
@@ -337,42 +737,90 @@
 
       <div class="stats">
         <div class="stat-card">
-          <div class="label">KG 근거</div>
-          <div class="value" id="chunkCount">0</div>
+          <div class="label">핵심 분석 대상</div>
+          <div class="value" id="statSeeds">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">분석 상태</div>
-          <div class="value" id="analysisState">대기</div>
+          <div class="label">관련 경기 · 관계</div>
+          <div class="value" id="statMatches">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">데이터 소스</div>
-          <div class="value">KG+RDB</div>
+          <div class="label">분석 기간</div>
+          <div class="value" id="statPeriod">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">그래프 저장소</div>
-          <div class="value">Neo4j</div>
+          <div class="label">참조 기사</div>
+          <div class="value" id="statArticles">-</div>
         </div>
       </div>
 
-    <div id="graph" class="graph-box"></div>
+      <div class="graph-body">
+        <aside class="rail">
+          <div class="rail-head">엔티티<span id="railCount" class="rail-count"></span></div>
+          <div id="rail" class="rail-list">
+            <div class="rail-empty">질문하면 엔티티가 여기에 표시됩니다.</div>
+          </div>
+        </aside>
+        <div class="graph-main">
+          <div id="filterChips" class="filter-chips"></div>
+          <div id="graph" class="graph-box"></div>
+          <div class="date-strip">
+            <svg id="dateStrip" height="56" role="img" aria-label="경기 날짜 스트립"></svg>
+            <div id="dateStripEmpty" class="rail-empty" hidden>경기 노드가 없습니다</div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- 오른쪽 답변 패널 -->
-    <section class="panel">
-      <h2>AI 답변 결과</h2>
+    <!-- 오른쪽 질의와 결과 패널 -->
+    <section class="panel result-panel">
+      <!-- 질문을 보내면 입력창은 접히고 아래 한 줄 요약만 남는다 -->
+      <div id="askBox" class="ask-box">
+        <h2>자연어 질의</h2>
+        <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘"></textarea>
+        <button class="ask-btn" onclick="askQuestion()">질문하기</button>
 
-      <div id="answer" class="answer-box empty">
-        아직 질문이 입력되지 않았습니다.
+        <div class="suggestions">
+          <button onclick="setQuestion('젠지 우승 전략을 알려줘')">젠지 우승 전략을 알려줘</button>
+          <button onclick="setQuestion('페이커가 사용한 챔피언을 알려줘')">페이커가 사용한 챔피언을 알려줘</button>
+          <button onclick="setQuestion('T1과 Gen.G의 관계를 알려줘')">T1과 Gen.G의 관계를 알려줘</button>
+          <button onclick="setQuestion('2025 스프링 MVP 관련 내용을 알려줘')">2025 스프링 MVP 관련 내용을 알려줘</button>
+        </div>
+      </div>
+      <div id="askSummary" class="ask-summary" hidden>
+        <span class="ask-summary-label">질문</span>
+        <span id="askSummaryText" class="ask-summary-text"></span>
+        <button type="button" class="ask-new" onclick="newQuestion()">새 질문</button>
       </div>
 
-      <h2 style="margin-top: 24px;">지식그래프 근거</h2>
-      <div id="chunks">
-        <div class="chunk-card empty">조회된 KG 관계가 여기에 표시됩니다.</div>
+      <h2>선택한 노드</h2>
+      <section id="nodeDetail" class="node-detail">
+        <div class="node-detail-empty">그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.</div>
+      </section>
+
+      <!-- 결과는 탭 3개로 나눈다. 답변 / 지식그래프 근거 / RDB 근거 -->
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" role="tab" data-tab="answer" onclick="selectTab('answer')">답변</button>
+        <button type="button" class="tab" role="tab" data-tab="facts" onclick="selectTab('facts')">지식그래프 근거<span id="tabFactsCount" class="tab-count"></span></button>
+        <button type="button" class="tab" role="tab" data-tab="rdb" onclick="selectTab('rdb')">RDB 근거</button>
       </div>
 
-      <h2 style="margin-top: 24px;">📊 RDB 통계 근거</h2>
-      <div id="rdbAnswer" class="rdb-box empty">조회된 RDB 통계가 여기에 표시됩니다.</div>
-      <div id="rdbFacts"></div>
+      <div id="tabAnswer" class="tab-pane active" role="tabpanel">
+        <div id="answer" class="answer-box empty">
+          아직 질문이 입력되지 않았습니다.
+        </div>
+      </div>
+
+      <div id="tabFacts" class="tab-pane" role="tabpanel">
+        <div id="chunks">
+          <div class="chunk-card empty">조회된 KG 관계가 여기에 표시됩니다.</div>
+        </div>
+      </div>
+
+      <div id="tabRdb" class="tab-pane" role="tabpanel">
+        <div id="rdbAnswer" class="rdb-box empty">조회된 RDB 통계가 여기에 표시됩니다.</div>
+        <div id="rdbFacts"></div>
+      </div>
     </section>
   </main>
 
@@ -380,81 +828,583 @@
     // config.js 에서 지정한 백엔드 주소. 없으면 같은 origin 을 사용한다.
     const API_BASE_URL = (window.API_BASE_URL || "").replace(/\/$/, "");
 
-  function renderGraph(graphData) {
-  const container = document.getElementById("graph");
-  container.innerHTML = "";
+    // ?mock=1 이면 백엔드 대신 픽스처를 읽는다.
+    const MOCK = new URLSearchParams(location.search).get("mock") === "1";
 
-  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
-    container.innerHTML = "<div style='padding:20px;color:#9ca3af;'>그래프 데이터가 없습니다.</div>";
-    return;
-  }
+    // vis DataSet 과 Network 인스턴스는 이 전역 한 곳에만 둔다.
+    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체", minScale: null, pinned: null };
 
-  const nodes = new vis.DataSet(
-    graphData.nodes.map(node => ({
-      id: node.id,
-      label: node.name,
-      group: node.label
-    }))
-  );
+    // 라벨별 노드 색. 테두리는 배경과 같은 계열에서 한 단계 진한 색이다.
+    const GROUP_COLORS = {
+      Team: { background: "#f59e0b", border: "#d97706" },
+      Player: { background: "#34d399", border: "#10b981" },
+      Champion: { background: "#60a5fa", border: "#3b82f6" },
+      Tournament: { background: "#f472b6", border: "#ec4899" },
+      League: { background: "#a78bfa", border: "#8b5cf6" },
+      Match: { background: "#fb7185", border: "#f43f5e" },
+      Game: { background: "#cbd5e1", border: "#94a3b8" },
+      Staff: { background: "#f97316", border: "#ea580c" },
+      Coach: { background: "#f97316", border: "#ea580c" },
+      Objective: { background: "#14b8a6", border: "#0d9488" },
+      Object: { background: "#14b8a6", border: "#0d9488" },
+      Entity: { background: "#9ca3af", border: "#6b7280" }
+    };
+    const EDGE_COLOR = "#b8c4d4";
+    const EDGE_ACTIVE_COLOR = "#475569";
+    const SELECTED_BORDER = "#111827";
+    // 흐림 처리용 색. opacity 옵션 대신 색을 치환한다.
+    const DIM_NODE_COLOR = { background: "#f3f4f6", border: "#e5e7eb" };
+    const DIM_EDGE_COLOR = "#e5e7eb";
+    const FONT_COLOR = "#343434";
+    const DIM_FONT_COLOR = "#cbd5e1";
+    const RAIL_LIMIT = 12;
+    const FILTER_ALL = "전체";
+    const STRIP_PAD = 24;
+    const DETAIL_NEIGHBOR_LIMIT = 5;
+    const DETAIL_EMPTY_TEXT = "그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.";
+    const DETAIL_ERROR_TEXT = "노드 상세를 불러오지 못했습니다";
+    const SVG_NS = "http://www.w3.org/2000/svg";
 
-  const edges = new vis.DataSet(
-    graphData.links.map(link => ({
-      from: link.source,
-      to: link.target,
-      label: link.type,
-      arrows: "to"
-    }))
-  );
-
-  const data = { nodes, edges };
-
-  const options = {
-    nodes: {
-      shape: "dot",
-      size: 18,
-      font: {
-        size: 14,
-        face: "Pretendard"
-      },
-      borderWidth: 2
-    },
-    edges: {
-      font: {
-        size: 11,
-        align: "middle"
-      },
-      color: {
-        color: "#94a3b8"
-      },
-      smooth: true
-    },
-    groups: {
-      Team: {
-        color: { background: "#f59e0b", border: "#d97706" }
-      },
-      Player: {
-        color: { background: "#34d399", border: "#10b981" }
-      },
-      Champion: {
-        color: { background: "#60a5fa", border: "#3b82f6" }
-      },
-      Tournament: {
-        color: { background: "#f472b6", border: "#ec4899" }
-      },
-      League: {
-        color: { background: "#a78bfa", border: "#8b5cf6" }
-      }
-    },
-    physics: {
-      stabilization: true
-    },
-    interaction: {
-      hover: true
+    function groupColor(label) {
+      return GROUP_COLORS[label] || GROUP_COLORS.Entity;
     }
-  };
 
-  new vis.Network(container, data, options);
-}
+    // 선택·hover 상태 색까지 함께 정해야 선택된 노드와 간선도 흐림 처리와 복원을 그대로 따른다.
+    function nodeColor(base, selectedBorder) {
+      return {
+        background: base.background,
+        border: base.border,
+        highlight: { background: base.background, border: selectedBorder },
+        hover: { background: base.background, border: base.border }
+      };
+    }
+
+    function edgeColor(dim) {
+      return dim
+        ? { color: DIM_EDGE_COLOR, highlight: DIM_EDGE_COLOR, hover: DIM_EDGE_COLOR }
+        : { color: EDGE_COLOR, highlight: EDGE_ACTIVE_COLOR, hover: EDGE_ACTIVE_COLOR };
+    }
+
+    function renderGraph(graph) {
+      const container = document.getElementById("graph");
+      if (state.network) state.network.destroy();
+      container.innerHTML = "";
+      Object.assign(state, {
+        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, minScale: null, pinned: null,
+        graph: graph || { nodes: [], links: [] }
+      });
+
+      if (!graph || !graph.nodes || graph.nodes.length === 0) {
+        container.innerHTML = "<div style='padding:20px;color:#9ca3af;'>그래프 데이터가 없습니다.</div>";
+        return;
+      }
+
+      state.nodes = new vis.DataSet(
+        graph.nodes.map(node => {
+          const color = groupColor(node.label);
+          state.nodesById[node.id] = node;
+          state.baseColors[node.id] = { background: color.background, border: color.border };
+          return {
+            id: node.id,
+            label: node.name,
+            group: node.label,
+            color: nodeColor(state.baseColors[node.id], SELECTED_BORDER)
+          };
+        })
+      );
+
+      // 간선 id 는 필터와 강조에서 그대로 찾아 쓴다.
+      state.edges = new vis.DataSet(
+        (graph.links || []).map(link => ({
+          id: `${link.source}|${link.target}|${link.type}`,
+          from: link.source,
+          to: link.target,
+          title: link.type,
+          arrows: "to",
+          color: edgeColor(false)
+        }))
+      );
+
+      const groups = {};
+      Object.keys(GROUP_COLORS).forEach(label => {
+        groups[label] = { color: { ...GROUP_COLORS[label] } };
+      });
+
+      const nodeCount = graph.nodes.length;
+      const options = {
+        layout: { randomSeed: 42 },
+        nodes: {
+          shape: "dot",
+          size: 18,
+          font: {
+            size: 13,
+            face: "Pretendard",
+            // 라벨 뒤에 흰 테두리를 깔아 간선이 글자를 가로질러도 읽힌다.
+            strokeWidth: 4,
+            strokeColor: "#ffffff"
+          },
+          borderWidth: 2
+        },
+        // 관계 이름은 간선에 적지 않는다. 종류는 필터 칩과 근거 카드에서 본다.
+        // 직선·가는 선·작은 화살표: 허브 노드에 간선이 수십 개 몰려도 노드와 라벨이 묻히지 않게.
+        edges: {
+          color: edgeColor(false),
+          width: 1,
+          arrows: { to: { scaleFactor: 0.5 } },
+          smooth: false
+        },
+        groups,
+        // 허브 주변이 비좁지 않게 반발력과 스프링 길이를 노드 수에 맞춰 키우고(작은 그래프는
+        // 촘촘하게, 큰 그래프는 넓게), 안정화는 충분히 돌린 뒤 물리를 끈다. 물리를 켜 둔
+        // 채로 두면 첫 화면이 계속 흔들린다.
+        physics: {
+          solver: "barnesHut",
+          barnesHut: {
+            gravitationalConstant: -Math.min(6000, 2000 + nodeCount * 40),
+            springLength: Math.min(170, 95 + nodeCount * 0.8),
+            springConstant: 0.03,
+            avoidOverlap: 0.6
+          },
+          stabilization: { iterations: 1000 }
+        },
+        interaction: {
+          hover: true
+        }
+      };
+
+      state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
+      // 노드 클릭은 상세와 강조 고정, 빈 곳 클릭은 고정 해제.
+      state.network.on("click", p => {
+        if (p.nodes[0]) {
+          pinNode(p.nodes[0]);
+          showNodeDetail(p.nodes[0]);
+        } else {
+          clearPin();
+        }
+      });
+
+      // 축소 하한: 처음 안정화돼 전체가 한 화면에 들어온 배율보다 더 작게는 줄이지 못한다.
+      state.minScale = null;
+      state.network.once("stabilized", () => {
+        state.network.setOptions({ physics: { enabled: false } });
+        state.network.fit();
+        state.minScale = state.network.getScale();
+      });
+      state.network.on("zoom", p => {
+        if (state.minScale && p.scale < state.minScale) {
+          state.network.moveTo({ scale: state.minScale });
+        }
+      });
+    }
+
+    function neighborIds(nodeId) {
+      const ids = new Set();
+      ((state.graph && state.graph.links) || []).forEach(link => {
+        if (link.source === nodeId) ids.add(link.target);
+        if (link.target === nodeId) ids.add(link.source);
+      });
+      ids.delete(nodeId);
+      return [...ids];
+    }
+
+    // 레일, 날짜 스트립, 상세 카드 이웃 버튼이 모두 이 경로로 포커스한다.
+    // 대상이 필터로 숨겨져 있으면 먼저 필터를 풀어 보이게 한 뒤 이동한다.
+    function focusNode(nodeId) {
+      if (!state.network) return;
+      const target = state.nodes.get(nodeId);
+      if (!target) return;
+      if (target.hidden) applyRelationFilter(FILTER_ALL);
+      state.network.focus(nodeId, { scale: 1.2, animation: true });
+      state.network.selectNodes([nodeId]);
+    }
+
+    // ids 와 그 사이 간선만 원래 색으로 두고 나머지는 회색으로 치환한다.
+    // focusId 를 주면 간선은 그 노드에 닿는 것만 남긴다(레일 hover 의 "인접 간선만").
+    function highlightNodes(ids, focusId) {
+      if (!state.nodes) return;
+      const keep = new Set(ids);
+      state.nodes.update(state.nodes.getIds().map(id => ({
+        id,
+        color: keep.has(id)
+          ? nodeColor(state.baseColors[id], SELECTED_BORDER)
+          : nodeColor(DIM_NODE_COLOR, DIM_NODE_COLOR.border),
+        font: { color: keep.has(id) ? FONT_COLOR : DIM_FONT_COLOR }
+      })));
+      state.edges.update(state.edges.get().map(edge => {
+        const on = keep.has(edge.from) && keep.has(edge.to)
+          && (focusId === undefined || edge.from === focusId || edge.to === focusId);
+        return { id: edge.id, color: edgeColor(!on) };
+      }));
+    }
+
+    function clearHighlight() {
+      if (!state.nodes) return;
+      state.nodes.update(state.nodes.getIds().map(id => ({
+        id,
+        color: nodeColor(state.baseColors[id], SELECTED_BORDER),
+        font: { color: FONT_COLOR }
+      })));
+      state.edges.update(state.edges.getIds().map(id => ({ id, color: edgeColor(false) })));
+    }
+
+    // 강조 고정. 클릭한 항목의 강조를 state.pinned 에 두고, hover 가 끝나면 이 상태로 되돌린다.
+    // 이미 고정된 항목을 다시 클릭하면 고정을 풀어 초기 화면으로 돌아간다.
+    function pinHighlight(ids, focusId, el, key) {
+      if (state.pinned && state.pinned.key === key) {
+        clearPin();
+        return;
+      }
+      state.pinned = { ids, focusId, key };
+      highlightNodes(ids, focusId);
+      document.querySelectorAll(".rail-item.selected, .fact-card.selected").forEach(e => e.classList.remove("selected"));
+      if (el) el.classList.add("selected");
+    }
+
+    function pinNode(nodeId) {
+      const el = document.querySelector(`.rail-item[data-id="${CSS.escape(nodeId)}"]`);
+      pinHighlight([nodeId, ...neighborIds(nodeId)], nodeId, el, `node:${nodeId}`);
+    }
+
+    function clearPin() {
+      state.pinned = null;
+      clearHighlight();
+      document.querySelectorAll(".rail-item.selected, .fact-card.selected").forEach(e => e.classList.remove("selected"));
+    }
+
+    // hover 가 끝났을 때: 고정된 강조가 있으면 그것으로, 없으면 전부 복원.
+    function restoreHighlight() {
+      if (state.pinned) highlightNodes(state.pinned.ids, state.pinned.focusId);
+      else clearHighlight();
+    }
+
+    // 마지막 요청만 카드에 반영하기 위한 순번.
+    let detailSeq = 0;
+    let nodeFixturePromise = null;
+
+    function loadNodeFixture() {
+      if (!nodeFixturePromise) {
+        nodeFixturePromise = fetch("fixtures/node_sample.json").then(response => {
+          if (!response.ok) throw new Error(`픽스처 로드 실패: ${response.status}`);
+          return response.json();
+        });
+        nodeFixturePromise.catch(() => { nodeFixturePromise = null; });
+      }
+      return nodeFixturePromise;
+    }
+
+    function resetNodeDetail() {
+      detailSeq += 1;
+      document.getElementById("nodeDetail").innerHTML =
+        `<div class="node-detail-empty">${DETAIL_EMPTY_TEXT}</div>`;
+    }
+
+    function renderNodeDetail(detail, failed) {
+      const card = document.getElementById("nodeDetail");
+      card.innerHTML = "";
+
+      if (failed) {
+        const error = document.createElement("div");
+        error.className = "node-detail-error";
+        error.innerText = DETAIL_ERROR_TEXT;
+        card.appendChild(error);
+      }
+      if (!detail) return;
+
+      const summary = [`관계 ${detail.degree}`];
+      if ((detail.label === "Team" || detail.label === "Player") && detail.record) {
+        summary.push(`승 ${detail.record.wins} · 패 ${detail.record.losses}`);
+      }
+      if (detail.label === "Match" && detail.match) {
+        summary.push(`${detail.match.score_a}:${detail.match.score_b} · ${detail.match.match_stage}`);
+      }
+
+      const head = document.createElement("div");
+      head.innerHTML = `
+        <div class="node-detail-title">${escapeHtml(detail.name)}</div>
+        <div class="node-detail-sub">${escapeHtml(GraphUtils.labelKo(detail.label))}</div>
+        <div class="summary-chips">
+          ${summary.map(text => `<span class="summary-chip">${escapeHtml(text)}</span>`).join("")}
+        </div>
+      `;
+      card.appendChild(head);
+
+      (detail.groups || []).forEach(group => {
+        const row = document.createElement("div");
+        row.className = "group-chip";
+        row.dataset.relation = group.relation;
+
+        const name = document.createElement("span");
+        name.className = "group-name";
+        name.innerHTML = `${escapeHtml(group.relation)}<span class="group-dir">${group.direction === "out" ? "나가는 관계" : "들어오는 관계"}</span>`;
+        row.appendChild(name);
+
+        const neighbors = group.neighbors || [];
+        neighbors.slice(0, DETAIL_NEIGHBOR_LIMIT).forEach(neighbor => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "neighbor";
+          button.dataset.id = neighbor.id;
+          button.innerText = neighbor.role ? `${neighbor.name} (${neighbor.role})` : neighbor.name;
+          button.addEventListener("click", () => {
+            if (state.nodes && state.nodes.get(neighbor.id)) pinNode(neighbor.id);
+            showNodeDetail(neighbor.id);
+            focusNode(neighbor.id);
+          });
+          row.appendChild(button);
+        });
+        if (neighbors.length > DETAIL_NEIGHBOR_LIMIT) {
+          const more = document.createElement("span");
+          more.className = "neighbor-more";
+          more.innerText = `+${neighbors.length - DETAIL_NEIGHBOR_LIMIT}`;
+          row.appendChild(more);
+        }
+        card.appendChild(row);
+      });
+    }
+
+    // 목 모드: 픽스처에서 id 조회, 없으면 로컬 1홉. 실 모드: /node 조회, 실패하면 실패 문구와 로컬 1홉.
+    async function showNodeDetail(nodeId) {
+      const seq = ++detailSeq;
+      let detail = null;
+      let failed = false;
+
+      try {
+        if (MOCK) {
+          const fixture = await loadNodeFixture();
+          detail = fixture[nodeId] || null;
+        } else {
+          const response = await fetch(`${API_BASE_URL}/node?id=${encodeURIComponent(nodeId)}`);
+          if (!response.ok) throw new Error(`/node 요청 실패: ${response.status}`);
+          detail = await response.json();
+        }
+      } catch (error) {
+        failed = true;
+        detail = null;
+        console.warn(DETAIL_ERROR_TEXT, error);
+      }
+
+      if (!detail) {
+        detail = GraphUtils.localNodeDetail(nodeId, state.graph || { nodes: [], links: [] });
+      }
+      if (seq !== detailSeq) return;
+      renderNodeDetail(detail, failed || !detail);
+    }
+
+    function renderRail(graph) {
+      const rail = document.getElementById("rail");
+      rail.innerHTML = "";
+
+      const nodes = (graph && graph.nodes) || [];
+      document.getElementById("railCount").innerText = nodes.length ? String(nodes.length) : "";
+      if (nodes.length === 0) {
+        rail.innerHTML = '<div class="rail-empty">엔티티가 없습니다</div>';
+        return;
+      }
+
+      const sorted = GraphUtils.sortNodesForRail(nodes);
+      sorted.forEach((node, index) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "rail-item";
+        item.dataset.id = node.id;
+        if (index >= RAIL_LIMIT) item.classList.add("hidden");
+
+        const badge = node.is_seed === true ? '<span class="badge">핵심</span>' : "";
+        item.innerHTML = `
+          <span class="dot" style="background:${groupColor(node.label).background}"></span>
+          <span class="rail-text">
+            <span class="rail-name">${escapeHtml(node.name)}${badge}</span>
+            <span class="sub">${escapeHtml(GraphUtils.railSubtitle(node))}</span>
+          </span>
+        `;
+
+        item.addEventListener("mouseenter", () => highlightNodes([node.id, ...neighborIds(node.id)], node.id));
+        item.addEventListener("mouseleave", () => restoreHighlight());
+        item.addEventListener("click", () => {
+          pinNode(node.id);
+          showNodeDetail(node.id);
+          focusNode(node.id);
+        });
+        rail.appendChild(item);
+      });
+
+      const extra = sorted.length - RAIL_LIMIT;
+      if (extra > 0) {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "rail-more";
+        more.innerText = `+ ${extra}개 더`;
+        more.addEventListener("click", () => {
+          const collapsed = more.innerText !== "접기";
+          rail.querySelectorAll(".rail-item").forEach((item, index) => {
+            item.classList.toggle("hidden", !collapsed && index >= RAIL_LIMIT);
+          });
+          more.innerText = collapsed ? "접기" : `+ ${extra}개 더`;
+        });
+        rail.appendChild(more);
+      }
+    }
+
+    function renderFilterChips(graph) {
+      const box = document.getElementById("filterChips");
+      box.innerHTML = "";
+      state.filter = FILTER_ALL;
+
+      const nodes = (graph && graph.nodes) || [];
+      const links = (graph && graph.links) || [];
+      if (nodes.length === 0) {
+        box.innerHTML = '<span class="rail-empty">관계 유형이 없습니다</span>';
+        return;
+      }
+
+      const nodesById = Object.fromEntries(nodes.map(node => [node.id, node]));
+      const counts = {};
+      links.forEach(link => {
+        const name = GraphUtils.classifyRelation(link, nodesById, GraphUtils.REL_GROUPS);
+        counts[name] = (counts[name] || 0) + 1;
+      });
+
+      const chips = [{ name: FILTER_ALL, count: links.length }]
+        .concat(GraphUtils.REL_GROUPS.map(group => ({ name: group.name, count: counts[group.name] || 0 })));
+      chips.forEach(chip => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chip";
+        button.dataset.group = chip.name;
+        button.disabled = chip.name !== FILTER_ALL && chip.count === 0;
+        button.innerHTML = `${escapeHtml(chip.name)}<span class="chip-count">${chip.count}</span>`;
+        button.addEventListener("click", () => applyRelationFilter(chip.name));
+        box.appendChild(button);
+      });
+      applyRelationFilter(FILTER_ALL);
+    }
+
+    // 선택한 묶음에 속하지 않는 간선과, 보이는 간선에 닿지 않는 노드를 숨긴다.
+    function applyRelationFilter(groupName) {
+      state.filter = groupName;
+      document.querySelectorAll("#filterChips .chip").forEach(chip => {
+        chip.classList.toggle("active", chip.dataset.group === groupName);
+      });
+      if (!state.nodes) return;
+
+      const visible = GraphUtils.visibleSetForGroup(state.graph, groupName, GraphUtils.REL_GROUPS);
+      state.edges.update(state.edges.getIds().map(id => ({ id, hidden: !visible.linkKeys.has(id) })));
+      state.nodes.update(state.nodes.getIds().map(id => ({ id, hidden: !visible.nodeIds.has(id) })));
+    }
+
+    function renderDateStrip(graph) {
+      const svg = document.getElementById("dateStrip");
+      const empty = document.getElementById("dateStripEmpty");
+      svg.innerHTML = "";
+      svg.style.display = "";
+      empty.hidden = true;
+      if (!graph) return;
+
+      const width = svg.clientWidth || 600;
+      const layout = GraphUtils.dateStripLayout(graph.nodes || [], width, STRIP_PAD);
+      if (layout.points.length === 0) {
+        svg.style.display = "none";
+        empty.hidden = false;
+        return;
+      }
+
+      const make = (tag, attrs) => {
+        const el = document.createElementNS(SVG_NS, tag);
+        Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+        svg.appendChild(el);
+        return el;
+      };
+
+      make("line", { x1: STRIP_PAD, y1: 20, x2: width - STRIP_PAD, y2: 20, stroke: "#e5e7eb", "stroke-width": 2 });
+      layout.points.forEach(point => {
+        const circle = make("circle", {
+          cx: point.x, cy: 20, r: 5, "data-id": point.id,
+          fill: GROUP_COLORS.Match.background, stroke: GROUP_COLORS.Match.border
+        });
+        const title = document.createElementNS(SVG_NS, "title");
+        title.textContent = point.date;
+        circle.appendChild(title);
+        circle.addEventListener("click", () => {
+          pinNode(point.id);
+          focusNode(point.id);
+          showNodeDetail(point.id);
+        });
+      });
+      make("text", { x: STRIP_PAD, y: 46, "text-anchor": "start" }).textContent = layout.minLabel;
+      make("text", { x: width - STRIP_PAD, y: 46, "text-anchor": "end" }).textContent = layout.maxLabel;
+    }
+
+    window.addEventListener("resize", () => renderDateStrip(state.graph));
+
+    function renderFacts(facts) {
+      const box = document.getElementById("chunks");
+      box.innerHTML = "";
+      document.getElementById("tabFactsCount").innerText = facts && facts.length ? String(facts.length) : "";
+
+      if (!facts || facts.length === 0) {
+        box.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
+        return;
+      }
+
+      facts.forEach(fact => {
+        const card = document.createElement("div");
+        card.className = "chunk-card fact-card";
+
+        const text = document.createElement("div");
+        text.innerText = `${fact.source} -[${fact.relation}]-> ${fact.target}`;
+        card.appendChild(text);
+
+        if (fact.evidence && fact.evidence.text) {
+          const evidence = document.createElement("div");
+          evidence.className = "fact-evidence";
+          evidence.innerText = fact.evidence.text;
+          card.appendChild(evidence);
+        }
+
+        // 이름이 그래프에 없으면 아무 일도 하지 않는다. 동명이인은 첫 매치만 쓴다.
+        const factIds = () => {
+          const found = GraphUtils.factNodeIds(fact, (state.graph && state.graph.nodes) || []);
+          return [found.sourceId, found.targetId].filter(id => id !== null);
+        };
+        card.addEventListener("mouseenter", () => {
+          const ids = factIds();
+          if (ids.length > 0) highlightNodes(ids);
+        });
+        card.addEventListener("mouseleave", () => restoreHighlight());
+        card.addEventListener("click", () => {
+          const ids = factIds();
+          if (ids.length > 0) pinHighlight(ids, undefined, card, card);
+        });
+        box.appendChild(card);
+      });
+    }
+
+    function renderStats(data) {
+      const stats = GraphUtils.computeStats(data);
+      document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
+      document.getElementById("statMatches").innerText = `경기 ${stats.matchCount} · 관계 ${stats.linkCount}`;
+      document.getElementById("statPeriod").innerText = stats.period;
+      document.getElementById("statArticles").innerText = stats.articleCount;
+    }
+
+    async function loadAsk(question) {
+      if (MOCK) {
+        const response = await fetch("fixtures/ask_sample.json");
+        if (!response.ok) throw new Error(`픽스처 로드 실패: ${response.status}`);
+        return response.json();
+      }
+
+      const response = await fetch(`${API_BASE_URL}/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ question })
+      });
+      if (!response.ok) throw new Error(`/ask 요청 실패: ${response.status}`);
+      return response.json();
+    }
+
   function renderRdb(data) {
     const rdbAnswer = document.getElementById("rdbAnswer");
     const rdbFacts = document.getElementById("rdbFacts");
@@ -505,6 +1455,33 @@
       document.getElementById("question").value = text;
     }
 
+    // 결과 탭 전환. name 은 answer, facts, rdb 중 하나.
+    function selectTab(name) {
+      document.querySelectorAll(".tabs .tab").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.tab === name);
+      });
+      const paneIds = { answer: "tabAnswer", facts: "tabFacts", rdb: "tabRdb" };
+      Object.entries(paneIds).forEach(([key, id]) => {
+        document.getElementById(id).classList.toggle("active", key === name);
+      });
+    }
+
+    // 질문을 보낸 뒤 입력창을 접고 한 줄 요약만 남긴다.
+    function collapseAsk(question) {
+      document.getElementById("askBox").hidden = true;
+      document.getElementById("askSummaryText").innerText = question;
+      document.getElementById("askSummary").hidden = false;
+    }
+
+    // 새 질문: 요약 줄을 닫고 입력창을 비운 채 다시 연다. 결과는 다음 질문 전까지 그대로 둔다.
+    function newQuestion() {
+      document.getElementById("askSummary").hidden = true;
+      document.getElementById("askBox").hidden = false;
+      const input = document.getElementById("question");
+      input.value = "";
+      input.focus();
+    }
+
     async function askQuestion() {
       const question = document.getElementById("question").value.trim();
 
@@ -529,50 +1506,31 @@
       document.getElementById("rdbFacts").innerHTML = "";
 
       queryStatus.innerText = "분석 중...";
-      apiStatus.innerText = "API 요청 중";
-
-      document.getElementById("analysisState").innerText = "분석중";
+      apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
+      selectTab("answer");
+      document.getElementById("tabFactsCount").innerText = "";
 
       try {
-        const response = await fetch(`${API_BASE_URL}/ask`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ question })
-        });
-
-        const data = await response.json();
+        const data = await loadAsk(question);
         console.log("ASK RESPONSE:", data);
         console.log("GRAPH DATA:", data.graph);
 
         answerDiv.className = "answer-box";
         answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
+        resetNodeDetail();
+        renderStats(data);
         renderGraph(data.graph);
+        renderRail(data.graph);
+        renderFilterChips(data.graph);
+        // graph 키가 없거나 null 인 응답도 질문 뒤에는 "없음" 문구를 띄운다.
+        renderDateStrip(data.graph || { nodes: [], links: [] });
         renderRdb(data);
 
-        chunksDiv.innerHTML = "";
-
-        const chunks = data.related_chunks || [];
-        document.getElementById("chunkCount").innerText = chunks.length;
-        document.getElementById("analysisState").innerText = "완료";
-
-        if (chunks.length === 0) {
-          chunksDiv.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
-        } else {
-          chunks.forEach((chunk, index) => {
-            const div = document.createElement("div");
-            div.className = "chunk-card";
-            div.innerHTML = `
-              <h4>KG 관계 ${index + 1}</h4>
-              <p>${escapeHtml(chunk.slice(0, 320))}</p>
-            `;
-            chunksDiv.appendChild(div);
-          });
-        }
+        renderFacts(data.graph_facts || []);
+        collapseAsk(question);
 
         queryStatus.innerText = `질문 분석 완료: ${question}`;
-        apiStatus.innerText = "API 연결 완료";
+        apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";
       } catch (error) {
         answerDiv.className = "answer-box";
         answerDiv.innerText = "오류가 발생했습니다. FastAPI 서버가 실행 중인지 확인해주세요.";
@@ -580,7 +1538,6 @@
         rdbAnswerDiv.innerText = "RDB 통계를 불러오지 못했습니다.";
         queryStatus.innerText = "오류 발생";
         apiStatus.innerText = "API 오류";
-        document.getElementById("analysisState").innerText = "오류";
         console.error(error);
       }
     }

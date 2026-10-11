@@ -1,0 +1,195 @@
+{
+  "mock:1": {
+    "id": "mock:1",
+    "name": "한화생명 이스포츠",
+    "label": "Team",
+    "degree": 48,
+    "record": {
+      "wins": 88,
+      "losses": 37
+    },
+    "match": null,
+    "groups": [
+      {
+        "relation": "MEMBER_OF",
+        "direction": "in",
+        "neighbors": [
+          {
+            "id": "mock:5",
+            "name": "딜라이트",
+            "label": "Player",
+            "role": "SUP"
+          },
+          {
+            "id": "mock:4",
+            "name": "바이퍼",
+            "label": "Player",
+            "role": "BOT"
+          },
+          {
+            "id": "mock:7",
+            "name": "제우스",
+            "label": "Player",
+            "role": "TOP"
+          },
+          {
+            "id": "mock:3",
+            "name": "제카",
+            "label": "Player",
+            "role": "MID"
+          },
+          {
+            "id": "mock:6",
+            "name": "피넛",
+            "label": "Player",
+            "role": "JGL"
+          }
+        ]
+      },
+      {
+        "relation": "PLAYED_MATCH",
+        "direction": "out",
+        "neighbors": [
+          {
+            "id": "mock:9",
+            "name": "GEN vs HLE · 2025-09-06",
+            "label": "Match",
+            "role": null
+          },
+          {
+            "id": "mock:11",
+            "name": "HLE vs KT · 2025-04-20",
+            "label": "Match",
+            "role": null
+          },
+          {
+            "id": "mock:10",
+            "name": "HLE vs T1 · 2025-08-30",
+            "label": "Match",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "WON_MATCH",
+        "direction": "out",
+        "neighbors": [
+          {
+            "id": "mock:9",
+            "name": "GEN vs HLE · 2025-09-06",
+            "label": "Match",
+            "role": null
+          },
+          {
+            "id": "mock:11",
+            "name": "HLE vs KT · 2025-04-20",
+            "label": "Match",
+            "role": null
+          },
+          {
+            "id": "mock:10",
+            "name": "HLE vs T1 · 2025-08-30",
+            "label": "Match",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "LOST_MATCH",
+        "direction": "out",
+        "neighbors": [
+          {
+            "id": "mock:12",
+            "name": "HLE vs DK · 2025-01-15",
+            "label": "Match",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "WORKED_FOR",
+        "direction": "in",
+        "neighbors": [
+          {
+            "id": "mock:16",
+            "name": "김정수",
+            "label": "Staff",
+            "role": null
+          }
+        ]
+      }
+    ]
+  },
+  "mock:9": {
+    "id": "mock:9",
+    "name": "GEN vs HLE · 2025-09-06",
+    "label": "Match",
+    "degree": 5,
+    "record": null,
+    "match": {
+      "match_stage": "Playoffs",
+      "score_a": 1,
+      "score_b": 3,
+      "best_of": 5,
+      "team_a_key": "TEAM_GEN",
+      "team_b_key": "TEAM_HLE",
+      "winner_key": "TEAM_HLE"
+    },
+    "groups": [
+      {
+        "relation": "PLAYED_MATCH",
+        "direction": "in",
+        "neighbors": [
+          {
+            "id": "mock:2",
+            "name": "젠지 이스포츠",
+            "label": "Team",
+            "role": null
+          },
+          {
+            "id": "mock:1",
+            "name": "한화생명 이스포츠",
+            "label": "Team",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "LOST_MATCH",
+        "direction": "in",
+        "neighbors": [
+          {
+            "id": "mock:2",
+            "name": "젠지 이스포츠",
+            "label": "Team",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "WON_MATCH",
+        "direction": "in",
+        "neighbors": [
+          {
+            "id": "mock:1",
+            "name": "한화생명 이스포츠",
+            "label": "Team",
+            "role": null
+          }
+        ]
+      },
+      {
+        "relation": "PART_OF_TOURNAMENT",
+        "direction": "out",
+        "neighbors": [
+          {
+            "id": "mock:18",
+            "name": "LCK 2025 Summer",
+            "label": "Tournament",
+            "role": null
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,629 @@
+{
+  "question": "한화생명 우승 전략을 알려줘",
+  "intent": "한화생명 e스포츠 팀의 우승 전략에 대한 정보를 요청함",
+  "graph_keyword": [
+    "한화생명"
+  ],
+  "kg_keywords": [
+    "한화생명"
+  ],
+  "answer": "목 응답입니다. 한화생명 이스포츠는 전령 확보와 미드 주도권을 바탕으로 플레이오프에서 젠지를 꺾었습니다. 이 문장은 화면 개발용 자리표시입니다.",
+  "article_answer": "기사 기반 답변 자리표시 문장입니다.",
+  "graph_answer": "지식그래프 기반 답변 자리표시 문장입니다.",
+  "rdb_answer": "RDB 기반 답변 자리표시 문장입니다.",
+  "answer_source": "hybrid",
+  "related_chunks": [],
+  "article_chunks": [
+    "기사 청크 1",
+    "기사 청크 2",
+    "기사 청크 3"
+  ],
+  "graph_facts": [
+    {
+      "source": "제카",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "바이퍼",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "딜라이트",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "피넛",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "제우스",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "쵸비",
+      "source_label": "Player",
+      "relation": "MEMBER_OF",
+      "target": "젠지 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "김정수",
+      "source_label": "Staff",
+      "relation": "WORKED_FOR",
+      "target": "한화생명 이스포츠",
+      "target_label": "Team",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "WON_MATCH",
+      "target": "GEN vs HLE · 2025-09-06",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "젠지 이스포츠",
+      "source_label": "Team",
+      "relation": "LOST_MATCH",
+      "target": "GEN vs HLE · 2025-09-06",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "WON_MATCH",
+      "target": "HLE vs T1 · 2025-08-30",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "WON_MATCH",
+      "target": "HLE vs KT · 2025-04-20",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "LOST_MATCH",
+      "target": "HLE vs DK · 2025-01-15",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "PLAYED_MATCH",
+      "target": "GEN vs HLE · 2025-09-06",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "젠지 이스포츠",
+      "source_label": "Team",
+      "relation": "PLAYED_MATCH",
+      "target": "GEN vs HLE · 2025-09-06",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "PLAYED_MATCH",
+      "target": "HLE vs T1 · 2025-08-30",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "PLAYED_MATCH",
+      "target": "HLE vs KT · 2025-04-20",
+      "target_label": "Match",
+      "evidence": null
+    },
+    {
+      "source": "제카",
+      "source_label": "Player",
+      "relation": "PICKED_CHAMPION",
+      "target": "아지르",
+      "target_label": "Champion",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_17",
+        "text": "제카는 아지르를 꺼내 들어 한타 구도를 주도했다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "바이퍼",
+      "source_label": "Player",
+      "relation": "PICKED_CHAMPION",
+      "target": "바루스",
+      "target_label": "Champion",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_18",
+        "text": "바이퍼는 바루스로 라인전 단계부터 주도권을 잡았다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "쵸비",
+      "source_label": "Player",
+      "relation": "PICKED_CHAMPION",
+      "target": "오리아나",
+      "target_label": "Champion",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_19",
+        "text": "쵸비는 오리아나를 선택해 후반 한타를 준비했다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "CAPTURED",
+      "target": "전령",
+      "target_label": "Objective",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_20",
+        "text": "한화생명은 전령을 확보해 미드 1차 포탑을 먼저 밀었다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "DEFEATED",
+      "target": "젠지 이스포츠",
+      "target_label": "Team",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_21",
+        "text": "한화생명 이스포츠는 젠지 이스포츠를 세트 스코어 3대1로 꺾었다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "GEN vs HLE · 2025-09-06",
+      "source_label": "Match",
+      "relation": "PART_OF_TOURNAMENT",
+      "target": "LCK 2025 Summer",
+      "target_label": "Tournament",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_22",
+        "text": "이 경기는 LCK 2025 Summer 플레이오프 일정으로 치러졌다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "한화생명 이스포츠",
+      "source_label": "Team",
+      "relation": "PARTICIPATED_IN",
+      "target": "LCK 2025 Summer",
+      "target_label": "Tournament",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_23",
+        "text": "한화생명 이스포츠는 LCK 2025 Summer에 참가했다.",
+        "confidence": 1
+      }
+    },
+    {
+      "source": "피넛",
+      "source_label": "Player",
+      "relation": "SECURED",
+      "target": "전령",
+      "target_label": "Objective",
+      "evidence": {
+        "article_key": "ARTICLE_MOCK_24",
+        "text": "피넛은 전령 앞 교전에서 강타 싸움을 이기며 오브젝트를 챙겼다.",
+        "confidence": 1
+      }
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "mock:1",
+        "name": "한화생명 이스포츠",
+        "label": "Team",
+        "degree": 16,
+        "is_seed": true,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:2",
+        "name": "젠지 이스포츠",
+        "label": "Team",
+        "degree": 4,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:3",
+        "name": "제카",
+        "label": "Player",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:4",
+        "name": "바이퍼",
+        "label": "Player",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:5",
+        "name": "딜라이트",
+        "label": "Player",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:6",
+        "name": "피넛",
+        "label": "Player",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:7",
+        "name": "제우스",
+        "label": "Player",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:8",
+        "name": "쵸비",
+        "label": "Player",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:9",
+        "name": "GEN vs HLE · 2025-09-06",
+        "label": "Match",
+        "degree": 5,
+        "is_seed": false,
+        "match_date": "2025-09-06",
+        "props": {
+          "match_stage": "Playoffs",
+          "score_a": 1,
+          "score_b": 3,
+          "best_of": 5,
+          "team_a_key": "TEAM_GEN",
+          "team_b_key": "TEAM_HLE",
+          "winner_key": "TEAM_HLE"
+        }
+      },
+      {
+        "id": "mock:10",
+        "name": "HLE vs T1 · 2025-08-30",
+        "label": "Match",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": "2025-08-30",
+        "props": {
+          "match_stage": "Regular",
+          "score_a": 2,
+          "score_b": 1,
+          "best_of": 3,
+          "team_a_key": "TEAM_HLE",
+          "team_b_key": "TEAM_T1",
+          "winner_key": "TEAM_HLE"
+        }
+      },
+      {
+        "id": "mock:11",
+        "name": "HLE vs KT · 2025-04-20",
+        "label": "Match",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": "2025-04-20",
+        "props": {
+          "match_stage": "Regular",
+          "score_a": 2,
+          "score_b": 0,
+          "best_of": 3,
+          "team_a_key": "TEAM_HLE",
+          "team_b_key": "TEAM_KT",
+          "winner_key": "TEAM_HLE"
+        }
+      },
+      {
+        "id": "mock:12",
+        "name": "HLE vs DK · 2025-01-15",
+        "label": "Match",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": "2025-01-15",
+        "props": {
+          "match_stage": "Regular",
+          "score_a": 1,
+          "score_b": 2,
+          "best_of": 3,
+          "team_a_key": "TEAM_HLE",
+          "team_b_key": "TEAM_DK",
+          "winner_key": "TEAM_DK"
+        }
+      },
+      {
+        "id": "mock:13",
+        "name": "아지르",
+        "label": "Champion",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:14",
+        "name": "바루스",
+        "label": "Champion",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:15",
+        "name": "오리아나",
+        "label": "Champion",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:16",
+        "name": "김정수",
+        "label": "Staff",
+        "degree": 1,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:17",
+        "name": "전령",
+        "label": "Objective",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      },
+      {
+        "id": "mock:18",
+        "name": "LCK 2025 Summer",
+        "label": "Tournament",
+        "degree": 2,
+        "is_seed": false,
+        "match_date": null,
+        "props": {}
+      }
+    ],
+    "links": [
+      {
+        "source": "mock:3",
+        "target": "mock:1",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:4",
+        "target": "mock:1",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:5",
+        "target": "mock:1",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:6",
+        "target": "mock:1",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:7",
+        "target": "mock:1",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:8",
+        "target": "mock:2",
+        "type": "MEMBER_OF",
+        "evidence": null
+      },
+      {
+        "source": "mock:16",
+        "target": "mock:1",
+        "type": "WORKED_FOR",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:9",
+        "type": "WON_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:2",
+        "target": "mock:9",
+        "type": "LOST_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:10",
+        "type": "WON_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:11",
+        "type": "WON_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:12",
+        "type": "LOST_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:9",
+        "type": "PLAYED_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:2",
+        "target": "mock:9",
+        "type": "PLAYED_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:10",
+        "type": "PLAYED_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:11",
+        "type": "PLAYED_MATCH",
+        "evidence": null
+      },
+      {
+        "source": "mock:3",
+        "target": "mock:13",
+        "type": "PICKED_CHAMPION",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_17",
+          "text": "제카는 아지르를 꺼내 들어 한타 구도를 주도했다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:4",
+        "target": "mock:14",
+        "type": "PICKED_CHAMPION",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_18",
+          "text": "바이퍼는 바루스로 라인전 단계부터 주도권을 잡았다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:8",
+        "target": "mock:15",
+        "type": "PICKED_CHAMPION",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_19",
+          "text": "쵸비는 오리아나를 선택해 후반 한타를 준비했다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:17",
+        "type": "CAPTURED",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_20",
+          "text": "한화생명은 전령을 확보해 미드 1차 포탑을 먼저 밀었다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:2",
+        "type": "DEFEATED",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_21",
+          "text": "한화생명 이스포츠는 젠지 이스포츠를 세트 스코어 3대1로 꺾었다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:9",
+        "target": "mock:18",
+        "type": "PART_OF_TOURNAMENT",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_22",
+          "text": "이 경기는 LCK 2025 Summer 플레이오프 일정으로 치러졌다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:1",
+        "target": "mock:18",
+        "type": "PARTICIPATED_IN",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_23",
+          "text": "한화생명 이스포츠는 LCK 2025 Summer에 참가했다.",
+          "confidence": 1
+        }
+      },
+      {
+        "source": "mock:6",
+        "target": "mock:17",
+        "type": "SECURED",
+        "evidence": {
+          "article_key": "ARTICLE_MOCK_24",
+          "text": "피넛은 전령 앞 교전에서 강타 싸움을 이기며 오브젝트를 챙겼다.",
+          "confidence": 1
+        }
+      }
+    ]
+  },
+  "rdb_entities": {
+    "players": [],
+    "teams": []
+  },
+  "rdb_facts": [],
+  "rdb_sql": null
+}
