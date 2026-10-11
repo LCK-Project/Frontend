@@ -156,7 +156,8 @@
       background: #fff7ed;
       border: 1px solid #fed7aa;
       border-radius: 14px;
-      padding: 16px;
+      padding: 14px;
+      min-width: 0;
     }
 
     .stat-card .label {
@@ -166,9 +167,12 @@
     }
 
     .stat-card .value {
-      font-size: 24px;
+      font-size: 16px;
       font-weight: 800;
       color: #111827;
+      line-height: 1.35;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
     }
 
     .graph-box {
@@ -322,20 +326,20 @@
 
       <div class="stats">
         <div class="stat-card">
-          <div class="label">KG 근거</div>
-          <div class="value" id="chunkCount">0</div>
+          <div class="label">핵심 분석 대상</div>
+          <div class="value" id="statSeeds">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">분석 상태</div>
-          <div class="value" id="analysisState">대기</div>
+          <div class="label">관련 경기 · 관계</div>
+          <div class="value" id="statMatches">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">데이터 소스</div>
-          <div class="value">KG+RDB</div>
+          <div class="label">분석 기간</div>
+          <div class="value" id="statPeriod">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">그래프 저장소</div>
-          <div class="value">Neo4j</div>
+          <div class="label">참조 기사</div>
+          <div class="value" id="statArticles">-</div>
         </div>
       </div>
 
@@ -469,6 +473,14 @@
       state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
     }
 
+    function renderStats(data) {
+      const stats = GraphUtils.computeStats(data);
+      document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
+      document.getElementById("statMatches").innerText = `경기 ${stats.matchCount} · 관계 ${stats.linkCount}`;
+      document.getElementById("statPeriod").innerText = stats.period;
+      document.getElementById("statArticles").innerText = stats.articleCount;
+    }
+
     async function loadAsk(question) {
       if (MOCK) {
         const response = await fetch("fixtures/ask_sample.json");
@@ -563,8 +575,6 @@
       queryStatus.innerText = "분석 중...";
       apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
 
-      document.getElementById("analysisState").innerText = "분석중";
-
       try {
         const data = await loadAsk(question);
         console.log("ASK RESPONSE:", data);
@@ -572,14 +582,13 @@
 
         answerDiv.className = "answer-box";
         answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
+        renderStats(data);
         renderGraph(data.graph);
         renderRdb(data);
 
         chunksDiv.innerHTML = "";
 
         const chunks = data.related_chunks || [];
-        document.getElementById("chunkCount").innerText = chunks.length;
-        document.getElementById("analysisState").innerText = "완료";
 
         if (chunks.length === 0) {
           chunksDiv.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
@@ -604,7 +613,6 @@
         rdbAnswerDiv.innerText = "RDB 통계를 불러오지 못했습니다.";
         queryStatus.innerText = "오류 발생";
         apiStatus.innerText = "API 오류";
-        document.getElementById("analysisState").innerText = "오류";
         console.error(error);
       }
     }
