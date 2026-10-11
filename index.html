@@ -849,7 +849,7 @@
       Object: { background: "#14b8a6", border: "#0d9488" },
       Entity: { background: "#9ca3af", border: "#6b7280" }
     };
-    const EDGE_COLOR = "#94a3b8";
+    const EDGE_COLOR = "#b8c4d4";
     const EDGE_ACTIVE_COLOR = "#475569";
     const SELECTED_BORDER = "#111827";
     // 흐림 처리용 색. opacity 옵션 대신 색을 치환한다.
@@ -930,25 +930,42 @@
         groups[label] = { color: { ...GROUP_COLORS[label] } };
       });
 
+      const nodeCount = graph.nodes.length;
       const options = {
         layout: { randomSeed: 42 },
         nodes: {
           shape: "dot",
           size: 18,
           font: {
-            size: 14,
-            face: "Pretendard"
+            size: 13,
+            face: "Pretendard",
+            // 라벨 뒤에 흰 테두리를 깔아 간선이 글자를 가로질러도 읽힌다.
+            strokeWidth: 4,
+            strokeColor: "#ffffff"
           },
           borderWidth: 2
         },
         // 관계 이름은 간선에 적지 않는다. 종류는 필터 칩과 근거 카드에서 본다.
+        // 직선·가는 선·작은 화살표: 허브 노드에 간선이 수십 개 몰려도 노드와 라벨이 묻히지 않게.
         edges: {
           color: edgeColor(false),
-          smooth: true
+          width: 1,
+          arrows: { to: { scaleFactor: 0.5 } },
+          smooth: false
         },
         groups,
+        // 허브 주변이 비좁지 않게 반발력과 스프링 길이를 노드 수에 맞춰 키우고(작은 그래프는
+        // 촘촘하게, 큰 그래프는 넓게), 안정화는 충분히 돌린 뒤 물리를 끈다. 물리를 켜 둔
+        // 채로 두면 첫 화면이 계속 흔들린다.
         physics: {
-          stabilization: { iterations: 200 }
+          solver: "barnesHut",
+          barnesHut: {
+            gravitationalConstant: -Math.min(6000, 2000 + nodeCount * 40),
+            springLength: Math.min(170, 95 + nodeCount * 0.8),
+            springConstant: 0.03,
+            avoidOverlap: 0.6
+          },
+          stabilization: { iterations: 1000 }
         },
         interaction: {
           hover: true
@@ -969,6 +986,7 @@
       // 축소 하한: 처음 안정화돼 전체가 한 화면에 들어온 배율보다 더 작게는 줄이지 못한다.
       state.minScale = null;
       state.network.once("stabilized", () => {
+        state.network.setOptions({ physics: { enabled: false } });
         state.network.fit();
         state.minScale = state.network.getScale();
       });
