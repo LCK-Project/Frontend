@@ -1,0 +1,3 @@
+# 통합 대장
+# 태스크	SHA	검증
+DOCKER-WEB(Task 6 Frontend 컨테이너)	81444a3814dba8d984e54740e405a079c1d87c0d	compose 기동·config.js 기본값/주입·루트 200·README.md 404 확인(5501 포트)
