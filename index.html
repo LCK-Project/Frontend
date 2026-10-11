@@ -355,6 +355,10 @@
       background: #fff7ed;
     }
 
+    .rail-item.selected {
+      background: #ffedd5;
+    }
+
     .rail-item.hidden {
       display: none;
     }
@@ -612,9 +616,18 @@
       font-size: 14px;
     }
 
+    .fact-card {
+      cursor: pointer;
+    }
+
     .fact-card:hover {
       border-color: #fed7aa;
       background: #fff7ed;
+    }
+
+    .fact-card.selected {
+      border-color: #f59e0b;
+      background: #ffedd5;
     }
 
     .fact-evidence {
@@ -819,7 +832,7 @@
     const MOCK = new URLSearchParams(location.search).get("mock") === "1";
 
     // vis DataSet 과 Network 인스턴스는 이 전역 한 곳에만 둔다.
-    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체", minScale: null };
+    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체", minScale: null, pinned: null };
 
     // 라벨별 노드 색. 테두리는 배경과 같은 계열에서 한 단계 진한 색이다.
     const GROUP_COLORS = {
@@ -877,7 +890,7 @@
       if (state.network) state.network.destroy();
       container.innerHTML = "";
       Object.assign(state, {
-        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, minScale: null,
+        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, minScale: null, pinned: null,
         graph: graph || { nodes: [], links: [] }
       });
 
@@ -943,7 +956,15 @@
       };
 
       state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
-      state.network.on("click", p => p.nodes[0] && showNodeDetail(p.nodes[0]));
+      // 노드 클릭은 상세와 강조 고정, 빈 곳 클릭은 고정 해제.
+      state.network.on("click", p => {
+        if (p.nodes[0]) {
+          pinNode(p.nodes[0]);
+          showNodeDetail(p.nodes[0]);
+        } else {
+          clearPin();
+        }
+      });
 
       // 축소 하한: 처음 안정화돼 전체가 한 화면에 들어온 배율보다 더 작게는 줄이지 못한다.
       state.minScale = null;
@@ -1006,6 +1027,36 @@
         font: { color: FONT_COLOR }
       })));
       state.edges.update(state.edges.getIds().map(id => ({ id, color: edgeColor(false) })));
+    }
+
+    // 강조 고정. 클릭한 항목의 강조를 state.pinned 에 두고, hover 가 끝나면 이 상태로 되돌린다.
+    // 이미 고정된 항목을 다시 클릭하면 고정을 풀어 초기 화면으로 돌아간다.
+    function pinHighlight(ids, focusId, el, key) {
+      if (state.pinned && state.pinned.key === key) {
+        clearPin();
+        return;
+      }
+      state.pinned = { ids, focusId, key };
+      highlightNodes(ids, focusId);
+      document.querySelectorAll(".rail-item.selected, .fact-card.selected").forEach(e => e.classList.remove("selected"));
+      if (el) el.classList.add("selected");
+    }
+
+    function pinNode(nodeId) {
+      const el = document.querySelector(`.rail-item[data-id="${CSS.escape(nodeId)}"]`);
+      pinHighlight([nodeId, ...neighborIds(nodeId)], nodeId, el, `node:${nodeId}`);
+    }
+
+    function clearPin() {
+      state.pinned = null;
+      clearHighlight();
+      document.querySelectorAll(".rail-item.selected, .fact-card.selected").forEach(e => e.classList.remove("selected"));
+    }
+
+    // hover 가 끝났을 때: 고정된 강조가 있으면 그것으로, 없으면 전부 복원.
+    function restoreHighlight() {
+      if (state.pinned) highlightNodes(state.pinned.ids, state.pinned.focusId);
+      else clearHighlight();
     }
 
     // 마지막 요청만 카드에 반영하기 위한 순번.
@@ -1077,6 +1128,7 @@
           button.dataset.id = neighbor.id;
           button.innerText = neighbor.role ? `${neighbor.name} (${neighbor.role})` : neighbor.name;
           button.addEventListener("click", () => {
+            if (state.nodes && state.nodes.get(neighbor.id)) pinNode(neighbor.id);
             showNodeDetail(neighbor.id);
             focusNode(neighbor.id);
           });
@@ -1149,8 +1201,9 @@
         `;
 
         item.addEventListener("mouseenter", () => highlightNodes([node.id, ...neighborIds(node.id)], node.id));
-        item.addEventListener("mouseleave", () => clearHighlight());
+        item.addEventListener("mouseleave", () => restoreHighlight());
         item.addEventListener("click", () => {
+          pinNode(node.id);
           showNodeDetail(node.id);
           focusNode(node.id);
         });
@@ -1254,6 +1307,7 @@
         title.textContent = point.date;
         circle.appendChild(title);
         circle.addEventListener("click", () => {
+          pinNode(point.id);
           focusNode(point.id);
           showNodeDetail(point.id);
         });
@@ -1290,12 +1344,19 @@
         }
 
         // 이름이 그래프에 없으면 아무 일도 하지 않는다. 동명이인은 첫 매치만 쓴다.
-        card.addEventListener("mouseenter", () => {
+        const factIds = () => {
           const found = GraphUtils.factNodeIds(fact, (state.graph && state.graph.nodes) || []);
-          const ids = [found.sourceId, found.targetId].filter(id => id !== null);
+          return [found.sourceId, found.targetId].filter(id => id !== null);
+        };
+        card.addEventListener("mouseenter", () => {
+          const ids = factIds();
           if (ids.length > 0) highlightNodes(ids);
         });
-        card.addEventListener("mouseleave", () => clearHighlight());
+        card.addEventListener("mouseleave", () => restoreHighlight());
+        card.addEventListener("click", () => {
+          const ids = factIds();
+          if (ids.length > 0) pinHighlight(ids, undefined, card, card);
+        });
         box.appendChild(card);
       });
     }
