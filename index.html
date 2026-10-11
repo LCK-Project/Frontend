@@ -147,7 +147,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -172,7 +172,7 @@
       color: #111827;
       line-height: 1.35;
       word-break: keep-all;
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
     }
 
     .graph-box {
@@ -234,6 +234,25 @@
       font-size: 11px;
       font-weight: 400;
       opacity: 0.8;
+    }
+
+    .date-strip {
+      margin-top: 10px;
+      min-height: 56px;
+    }
+
+    #dateStrip {
+      display: block;
+      width: 100%;
+    }
+
+    #dateStrip circle {
+      cursor: pointer;
+    }
+
+    #dateStrip text {
+      font-size: 11px;
+      fill: #6b7280;
     }
 
     .rail {
@@ -489,6 +508,10 @@
         <div class="graph-main">
           <div id="filterChips" class="filter-chips"></div>
           <div id="graph" class="graph-box"></div>
+          <div class="date-strip">
+            <svg id="dateStrip" height="56" role="img" aria-label="경기 날짜 스트립"></svg>
+            <div id="dateStripEmpty" class="rail-empty" hidden>경기 노드가 없습니다</div>
+          </div>
         </div>
       </div>
     </section>
@@ -545,6 +568,8 @@
     const DIM_FONT_COLOR = "#cbd5e1";
     const RAIL_LIMIT = 12;
     const FILTER_ALL = "전체";
+    const STRIP_PAD = 24;
+    const SVG_NS = "http://www.w3.org/2000/svg";
 
     function groupColor(label) {
       return GROUP_COLORS[label] || GROUP_COLORS.Entity;
@@ -778,6 +803,52 @@
       state.nodes.update(state.nodes.getIds().map(id => ({ id, hidden: !visible.nodeIds.has(id) })));
     }
 
+    function renderDateStrip(graph) {
+      const svg = document.getElementById("dateStrip");
+      const empty = document.getElementById("dateStripEmpty");
+      svg.innerHTML = "";
+      svg.style.display = "";
+      empty.hidden = true;
+      if (!graph) return;
+
+      const width = svg.clientWidth || 600;
+      const layout = GraphUtils.dateStripLayout(graph.nodes || [], width, STRIP_PAD);
+      if (layout.points.length === 0) {
+        svg.style.display = "none";
+        empty.hidden = false;
+        return;
+      }
+
+      const make = (tag, attrs) => {
+        const el = document.createElementNS(SVG_NS, tag);
+        Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+        svg.appendChild(el);
+        return el;
+      };
+
+      make("line", { x1: STRIP_PAD, y1: 20, x2: width - STRIP_PAD, y2: 20, stroke: "#e5e7eb", "stroke-width": 2 });
+      layout.points.forEach(point => {
+        const circle = make("circle", {
+          cx: point.x, cy: 20, r: 5, "data-id": point.id,
+          fill: GROUP_COLORS.Match.background, stroke: GROUP_COLORS.Match.border
+        });
+        const title = document.createElementNS(SVG_NS, "title");
+        title.textContent = point.date;
+        circle.appendChild(title);
+        circle.addEventListener("click", () => {
+          if (state.network && state.nodes.get(point.id)) {
+            state.network.focus(point.id, { scale: 1.2, animation: true });
+            state.network.selectNodes([point.id]);
+          }
+          showNodeDetail(point.id);
+        });
+      });
+      make("text", { x: STRIP_PAD, y: 46, "text-anchor": "start" }).textContent = layout.minLabel;
+      make("text", { x: width - STRIP_PAD, y: 46, "text-anchor": "end" }).textContent = layout.maxLabel;
+    }
+
+    window.addEventListener("resize", () => renderDateStrip(state.graph));
+
     function renderStats(data) {
       const stats = GraphUtils.computeStats(data);
       document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
@@ -891,6 +962,7 @@
         renderGraph(data.graph);
         renderRail(data.graph);
         renderFilterChips(data.graph);
+        renderDateStrip(data.graph);
         renderRdb(data);
 
         chunksDiv.innerHTML = "";
