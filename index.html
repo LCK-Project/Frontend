@@ -785,7 +785,7 @@
     const MOCK = new URLSearchParams(location.search).get("mock") === "1";
 
     // vis DataSet 과 Network 인스턴스는 이 전역 한 곳에만 둔다.
-    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체" };
+    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null, filter: "전체", minScale: null };
 
     // 라벨별 노드 색. 테두리는 배경과 같은 계열에서 한 단계 진한 색이다.
     const GROUP_COLORS = {
@@ -843,7 +843,7 @@
       if (state.network) state.network.destroy();
       container.innerHTML = "";
       Object.assign(state, {
-        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {},
+        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, minScale: null,
         graph: graph || { nodes: [], links: [] }
       });
 
@@ -872,7 +872,7 @@
           id: `${link.source}|${link.target}|${link.type}`,
           from: link.source,
           to: link.target,
-          label: link.type,
+          title: link.type,
           arrows: "to",
           color: edgeColor(false)
         }))
@@ -894,11 +894,8 @@
           },
           borderWidth: 2
         },
+        // 관계 이름은 간선에 적지 않는다. 종류는 필터 칩과 근거 카드에서 본다.
         edges: {
-          font: {
-            size: 11,
-            align: "middle"
-          },
           color: edgeColor(false),
           smooth: true
         },
@@ -913,6 +910,18 @@
 
       state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
       state.network.on("click", p => p.nodes[0] && showNodeDetail(p.nodes[0]));
+
+      // 축소 하한: 처음 안정화돼 전체가 한 화면에 들어온 배율보다 더 작게는 줄이지 못한다.
+      state.minScale = null;
+      state.network.once("stabilized", () => {
+        state.network.fit();
+        state.minScale = state.network.getScale();
+      });
+      state.network.on("zoom", p => {
+        if (state.minScale && p.scale < state.minScale) {
+          state.network.moveTo({ scale: state.minScale });
+        }
+      });
     }
 
     function neighborIds(nodeId) {
@@ -951,11 +960,7 @@
       state.edges.update(state.edges.get().map(edge => {
         const on = keep.has(edge.from) && keep.has(edge.to)
           && (focusId === undefined || edge.from === focusId || edge.to === focusId);
-        return {
-          id: edge.id,
-          color: edgeColor(!on),
-          font: { color: on ? FONT_COLOR : DIM_FONT_COLOR }
-        };
+        return { id: edge.id, color: edgeColor(!on) };
       }));
     }
 
@@ -966,11 +971,7 @@
         color: nodeColor(state.baseColors[id], SELECTED_BORDER),
         font: { color: FONT_COLOR }
       })));
-      state.edges.update(state.edges.getIds().map(id => ({
-        id,
-        color: edgeColor(false),
-        font: { color: FONT_COLOR }
-      })));
+      state.edges.update(state.edges.getIds().map(id => ({ id, color: edgeColor(false) })));
     }
 
     // 마지막 요청만 카드에 반영하기 위한 순번.
