@@ -1,0 +1,30 @@
+# 통합 대장: 그래프 패널 개편 안 1 · 프론트
+
+계획서: `2026-10-11-graph-panel-option1-frontend.md`. 여기에 SHA가 적힌 태스크만 후속 태스크의 선행 근거로 쓴다.
+검증 명령은 저장소 루트에서 `node --test "tests/*.test.js"`. 화면 검증은 `?mock=1`을 헤드리스 Chrome(CDP)으로 구동해 스펙 6-2 체크리스트 11항목을 확인했다.
+
+| 태스크 | 상태 | 커밋 SHA | 검증 |
+|---|---|---|---|
+| Task 1 픽스처와 작업 공간 준비 | 완료 | 909f3b5 | 테스트 6 PASS |
+| Task 2 `assets/graph-utils.js` 순수 함수 | 완료 | e2f4f9f | 테스트 23 PASS (픽스처 6 + 유틸 17) |
+| Task 3 목 분기, 레이아웃, 배치 고정 | 완료 | a97d33f | 체크리스트 10, 11 |
+| Task 4 통계 칩 | 완료 | d4fa4e0 | 체크리스트 1 |
+| Task 5 엔티티 레일과 흐림 처리 | 완료 | fb18195 | 체크리스트 2, 3 |
+| Task 6 관계 유형 필터 칩 | 완료 | 510ea89 | 체크리스트 4, 5 |
+| Task 7 경기 날짜 스트립 | 완료 | 6cf943e | 체크리스트 6 |
+| Task 8 노드 상세 고정 카드 | 완료 | 2c4044f | 체크리스트 7, 8, Review Focus 5 |
+| Task 9 근거 카드 hover 연동, README | 완료 | 95e04b6 | 체크리스트 9, 전체 11항목 |
+| 리뷰 반영(독립 리뷰 3건) | 완료 | 67fe5b5 | 숨은 노드 포커스, graph 없는 응답, README 표 |
+| `main` 머지 | 완료 | f8396d2 | 루트에서 테스트 23 PASS, 트리가 67fe5b5와 동일 |
+
+## 계획과 달라진 점
+
+- 테스트 명령을 `node --test tests/`에서 `node --test "tests/*.test.js"`로 바꿨다. Node 24에서 앞의 것은 `Cannot find module`로 실패한다.
+- Task 2~9와 리뷰 반영 커밋의 트레일러가 계획서의 `Claude Fable 5.1`이 아니라 `Claude Opus 5.5`다. 구현 세션이 실제 모델에 맞춰 넣었고, 이력 재작성은 하지 않았다. Task 1과 머지 커밋은 계획서대로 `Claude Fable 5.1`이다.
+- `highlightNodes(ids, focusId)`에 선택 인자가 생겼다. 레일 hover에서 이웃끼리의 간선까지 켜지는 것을 막아 스펙 3-3의 "인접 간선만"을 지키기 위해서다.
+- 체크리스트 10: 가로 넘침은 없다(`scrollWidth 1401 = clientWidth 1401`, 가로 스크롤 불가). 다만 스펙의 식 `scrollWidth === innerWidth`는 헤드리스에서 세로 스크롤바 폭 15px 때문에 false다. 원인은 이번 범위 밖의 기존 세로 넘침 13px(헤더 95px 대 `.container`의 `100vh - 82px`)이다.
+
+## 남은 일
+
+- 실 백엔드의 새 `graph` 스키마와 `/node` 성공 응답으로는 검증하지 않았다. 백엔드 계획이 끝나면 `?mock=1` 없이 체크리스트 1~9를 다시 돈다.
+- 푸시는 하지 않았다.
