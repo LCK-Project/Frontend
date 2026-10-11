@@ -3,9 +3,12 @@
 <head>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="config.js"></script>
+  <script src="assets/graph-utils.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LCK Knowledge Graph Dashboard</title>
+  <!-- 파비콘 파일이 없어 생기는 404 콘솔 에러를 막는다. -->
+  <link rel="icon" href="data:," />
 
   <style>
     * {
@@ -41,7 +44,7 @@
 
     .container {
       display: grid;
-      grid-template-columns: 320px 1fr 380px;
+      grid-template-columns: 300px minmax(0, 1fr) 380px;
       gap: 20px;
       padding: 24px;
       height: calc(100vh - 82px);
@@ -54,6 +57,7 @@
       padding: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
       overflow: auto;
+      min-width: 0;
     }
 
     .panel h2 {
@@ -168,30 +172,11 @@
     }
 
     .graph-box {
-    height: 430px;
-    border-radius: 18px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    overflow: hidden;
-    }
-
-   
-
-    .legend {
-      margin-top: 14px;
-      display: flex;
-      gap: 12px;
-      font-size: 13px;
-      color: #6b7280;
-      flex-wrap: wrap;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 5px;
+      height: 430px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
     }
 
     .answer-box {
@@ -380,81 +365,128 @@
     // config.js 에서 지정한 백엔드 주소. 없으면 같은 origin 을 사용한다.
     const API_BASE_URL = (window.API_BASE_URL || "").replace(/\/$/, "");
 
-  function renderGraph(graphData) {
-  const container = document.getElementById("graph");
-  container.innerHTML = "";
+    // ?mock=1 이면 백엔드 대신 픽스처를 읽는다.
+    const MOCK = new URLSearchParams(location.search).get("mock") === "1";
 
-  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
-    container.innerHTML = "<div style='padding:20px;color:#9ca3af;'>그래프 데이터가 없습니다.</div>";
-    return;
-  }
+    // vis DataSet 과 Network 인스턴스는 이 전역 한 곳에만 둔다.
+    const state = { network: null, nodes: null, edges: null, baseColors: {}, nodesById: {}, graph: null };
 
-  const nodes = new vis.DataSet(
-    graphData.nodes.map(node => ({
-      id: node.id,
-      label: node.name,
-      group: node.label
-    }))
-  );
+    // 라벨별 노드 색. 테두리는 배경과 같은 계열에서 한 단계 진한 색이다.
+    const GROUP_COLORS = {
+      Team: { background: "#f59e0b", border: "#d97706" },
+      Player: { background: "#34d399", border: "#10b981" },
+      Champion: { background: "#60a5fa", border: "#3b82f6" },
+      Tournament: { background: "#f472b6", border: "#ec4899" },
+      League: { background: "#a78bfa", border: "#8b5cf6" },
+      Match: { background: "#fb7185", border: "#f43f5e" },
+      Game: { background: "#cbd5e1", border: "#94a3b8" },
+      Staff: { background: "#f97316", border: "#ea580c" },
+      Coach: { background: "#f97316", border: "#ea580c" },
+      Objective: { background: "#14b8a6", border: "#0d9488" },
+      Object: { background: "#14b8a6", border: "#0d9488" },
+      Entity: { background: "#9ca3af", border: "#6b7280" }
+    };
+    const EDGE_COLOR = "#94a3b8";
 
-  const edges = new vis.DataSet(
-    graphData.links.map(link => ({
-      from: link.source,
-      to: link.target,
-      label: link.type,
-      arrows: "to"
-    }))
-  );
-
-  const data = { nodes, edges };
-
-  const options = {
-    nodes: {
-      shape: "dot",
-      size: 18,
-      font: {
-        size: 14,
-        face: "Pretendard"
-      },
-      borderWidth: 2
-    },
-    edges: {
-      font: {
-        size: 11,
-        align: "middle"
-      },
-      color: {
-        color: "#94a3b8"
-      },
-      smooth: true
-    },
-    groups: {
-      Team: {
-        color: { background: "#f59e0b", border: "#d97706" }
-      },
-      Player: {
-        color: { background: "#34d399", border: "#10b981" }
-      },
-      Champion: {
-        color: { background: "#60a5fa", border: "#3b82f6" }
-      },
-      Tournament: {
-        color: { background: "#f472b6", border: "#ec4899" }
-      },
-      League: {
-        color: { background: "#a78bfa", border: "#8b5cf6" }
-      }
-    },
-    physics: {
-      stabilization: true
-    },
-    interaction: {
-      hover: true
+    function groupColor(label) {
+      return GROUP_COLORS[label] || GROUP_COLORS.Entity;
     }
-  };
 
-  new vis.Network(container, data, options);
-}
+    function renderGraph(graph) {
+      const container = document.getElementById("graph");
+      if (state.network) state.network.destroy();
+      container.innerHTML = "";
+      Object.assign(state, {
+        network: null, nodes: null, edges: null, baseColors: {}, nodesById: {},
+        graph: graph || { nodes: [], links: [] }
+      });
+
+      if (!graph || !graph.nodes || graph.nodes.length === 0) {
+        container.innerHTML = "<div style='padding:20px;color:#9ca3af;'>그래프 데이터가 없습니다.</div>";
+        return;
+      }
+
+      state.nodes = new vis.DataSet(
+        graph.nodes.map(node => {
+          const color = groupColor(node.label);
+          state.nodesById[node.id] = node;
+          state.baseColors[node.id] = { background: color.background, border: color.border };
+          return {
+            id: node.id,
+            label: node.name,
+            group: node.label,
+            color: { background: color.background, border: color.border }
+          };
+        })
+      );
+
+      // 간선 id 는 필터와 강조에서 그대로 찾아 쓴다.
+      state.edges = new vis.DataSet(
+        (graph.links || []).map(link => ({
+          id: `${link.source}|${link.target}|${link.type}`,
+          from: link.source,
+          to: link.target,
+          label: link.type,
+          arrows: "to"
+        }))
+      );
+
+      const groups = {};
+      Object.keys(GROUP_COLORS).forEach(label => {
+        groups[label] = { color: { ...GROUP_COLORS[label] } };
+      });
+
+      const options = {
+        layout: { randomSeed: 42 },
+        nodes: {
+          shape: "dot",
+          size: 18,
+          font: {
+            size: 14,
+            face: "Pretendard"
+          },
+          borderWidth: 2
+        },
+        edges: {
+          font: {
+            size: 11,
+            align: "middle"
+          },
+          color: {
+            color: EDGE_COLOR
+          },
+          smooth: true
+        },
+        groups,
+        physics: {
+          stabilization: { iterations: 200 }
+        },
+        interaction: {
+          hover: true
+        }
+      };
+
+      state.network = new vis.Network(container, { nodes: state.nodes, edges: state.edges }, options);
+    }
+
+    async function loadAsk(question) {
+      if (MOCK) {
+        const response = await fetch("fixtures/ask_sample.json");
+        if (!response.ok) throw new Error(`픽스처 로드 실패: ${response.status}`);
+        return response.json();
+      }
+
+      const response = await fetch(`${API_BASE_URL}/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ question })
+      });
+      if (!response.ok) throw new Error(`/ask 요청 실패: ${response.status}`);
+      return response.json();
+    }
+
   function renderRdb(data) {
     const rdbAnswer = document.getElementById("rdbAnswer");
     const rdbFacts = document.getElementById("rdbFacts");
@@ -529,20 +561,12 @@
       document.getElementById("rdbFacts").innerHTML = "";
 
       queryStatus.innerText = "분석 중...";
-      apiStatus.innerText = "API 요청 중";
+      apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
 
       document.getElementById("analysisState").innerText = "분석중";
 
       try {
-        const response = await fetch(`${API_BASE_URL}/ask`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ question })
-        });
-
-        const data = await response.json();
+        const data = await loadAsk(question);
         console.log("ASK RESPONSE:", data);
         console.log("GRAPH DATA:", data.graph);
 
@@ -572,7 +596,7 @@
         }
 
         queryStatus.innerText = `질문 분석 완료: ${question}`;
-        apiStatus.innerText = "API 연결 완료";
+        apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";
       } catch (error) {
         answerDiv.className = "answer-box";
         answerDiv.innerText = "오류가 발생했습니다. FastAPI 서버가 실행 중인지 확인해주세요.";
