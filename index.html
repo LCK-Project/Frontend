@@ -476,7 +476,93 @@
       padding: 16px;
       line-height: 1.7;
       white-space: pre-wrap;
-      min-height: 220px;
+      min-height: 120px;
+    }
+
+    /* 질문 요약 줄. 입력창이 접힌 뒤에 보인다 */
+    .ask-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid #fed7aa;
+      border-radius: 12px;
+      background: #fff7ed;
+      font-size: 13px;
+    }
+
+    .ask-summary-label {
+      flex: none;
+      color: #92400e;
+      font-weight: 700;
+    }
+
+    .ask-summary-text {
+      flex: 1;
+      min-width: 0;
+      color: #111827;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ask-edit {
+      flex: none;
+      padding: 4px 10px;
+      font-size: 12px;
+      background: #ffffff;
+      color: #92400e;
+      border: 1px solid #fed7aa;
+    }
+
+    .ask-edit:hover {
+      background: #ffedd5;
+    }
+
+    /* 결과 탭 */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-top: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .tab {
+      padding: 8px 12px;
+      border-radius: 10px 10px 0 0;
+      background: transparent;
+      color: #6b7280;
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover {
+      color: #111827;
+    }
+
+    .tab.active {
+      color: #d97706;
+      border-bottom-color: #f59e0b;
+    }
+
+    .tab-count {
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    .tab-count:empty {
+      display: none;
+    }
+
+    .tab-pane {
+      display: none;
+      padding-top: 12px;
+    }
+
+    .tab-pane.active {
+      display: block;
     }
 
     .chunk-card {
@@ -635,15 +721,23 @@
 
     <!-- 오른쪽 질의와 결과 패널 -->
     <section class="panel result-panel">
-      <h2>자연어 질의</h2>
-      <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘"></textarea>
-      <button class="ask-btn" onclick="askQuestion()">질문하기</button>
+      <!-- 질문을 보내면 입력창은 접히고 아래 한 줄 요약만 남는다 -->
+      <div id="askBox" class="ask-box">
+        <h2>자연어 질의</h2>
+        <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘"></textarea>
+        <button class="ask-btn" onclick="askQuestion()">질문하기</button>
 
-      <div class="suggestions">
-        <button onclick="setQuestion('젠지 우승 전략을 알려줘')">젠지 우승 전략을 알려줘</button>
-        <button onclick="setQuestion('페이커가 사용한 챔피언을 알려줘')">페이커가 사용한 챔피언을 알려줘</button>
-        <button onclick="setQuestion('T1과 Gen.G의 관계를 알려줘')">T1과 Gen.G의 관계를 알려줘</button>
-        <button onclick="setQuestion('2025 스프링 MVP 관련 내용을 알려줘')">2025 스프링 MVP 관련 내용을 알려줘</button>
+        <div class="suggestions">
+          <button onclick="setQuestion('젠지 우승 전략을 알려줘')">젠지 우승 전략을 알려줘</button>
+          <button onclick="setQuestion('페이커가 사용한 챔피언을 알려줘')">페이커가 사용한 챔피언을 알려줘</button>
+          <button onclick="setQuestion('T1과 Gen.G의 관계를 알려줘')">T1과 Gen.G의 관계를 알려줘</button>
+          <button onclick="setQuestion('2025 스프링 MVP 관련 내용을 알려줘')">2025 스프링 MVP 관련 내용을 알려줘</button>
+        </div>
+      </div>
+      <div id="askSummary" class="ask-summary" hidden>
+        <span class="ask-summary-label">질문</span>
+        <span id="askSummaryText" class="ask-summary-text"></span>
+        <button type="button" class="ask-edit" onclick="expandAsk()">수정</button>
       </div>
 
       <h2>선택한 노드</h2>
@@ -651,19 +745,29 @@
         <div class="node-detail-empty">그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.</div>
       </section>
 
-      <h2>AI 답변 결과</h2>
-      <div id="answer" class="answer-box empty">
-        아직 질문이 입력되지 않았습니다.
+      <!-- 결과는 탭 3개로 나눈다. 답변 / 지식그래프 근거 / RDB 근거 -->
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" role="tab" data-tab="answer" onclick="selectTab('answer')">답변</button>
+        <button type="button" class="tab" role="tab" data-tab="facts" onclick="selectTab('facts')">지식그래프 근거<span id="tabFactsCount" class="tab-count"></span></button>
+        <button type="button" class="tab" role="tab" data-tab="rdb" onclick="selectTab('rdb')">RDB 근거</button>
       </div>
 
-      <h2>지식그래프 근거</h2>
-      <div id="chunks">
-        <div class="chunk-card empty">조회된 KG 관계가 여기에 표시됩니다.</div>
+      <div id="tabAnswer" class="tab-pane active" role="tabpanel">
+        <div id="answer" class="answer-box empty">
+          아직 질문이 입력되지 않았습니다.
+        </div>
       </div>
 
-      <h2>RDB 통계 근거</h2>
-      <div id="rdbAnswer" class="rdb-box empty">조회된 RDB 통계가 여기에 표시됩니다.</div>
-      <div id="rdbFacts"></div>
+      <div id="tabFacts" class="tab-pane" role="tabpanel">
+        <div id="chunks">
+          <div class="chunk-card empty">조회된 KG 관계가 여기에 표시됩니다.</div>
+        </div>
+      </div>
+
+      <div id="tabRdb" class="tab-pane" role="tabpanel">
+        <div id="rdbAnswer" class="rdb-box empty">조회된 RDB 통계가 여기에 표시됩니다.</div>
+        <div id="rdbFacts"></div>
+      </div>
     </section>
   </main>
 
@@ -1121,6 +1225,7 @@
     function renderFacts(facts) {
       const box = document.getElementById("chunks");
       box.innerHTML = "";
+      document.getElementById("tabFactsCount").innerText = facts && facts.length ? String(facts.length) : "";
 
       if (!facts || facts.length === 0) {
         box.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
@@ -1229,6 +1334,30 @@
       document.getElementById("question").value = text;
     }
 
+    // 결과 탭 전환. name 은 answer, facts, rdb 중 하나.
+    function selectTab(name) {
+      document.querySelectorAll(".tabs .tab").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.tab === name);
+      });
+      const paneIds = { answer: "tabAnswer", facts: "tabFacts", rdb: "tabRdb" };
+      Object.entries(paneIds).forEach(([key, id]) => {
+        document.getElementById(id).classList.toggle("active", key === name);
+      });
+    }
+
+    // 질문을 보낸 뒤 입력창을 접고 한 줄 요약만 남긴다.
+    function collapseAsk(question) {
+      document.getElementById("askBox").hidden = true;
+      document.getElementById("askSummaryText").innerText = question;
+      document.getElementById("askSummary").hidden = false;
+    }
+
+    function expandAsk() {
+      document.getElementById("askSummary").hidden = true;
+      document.getElementById("askBox").hidden = false;
+      document.getElementById("question").focus();
+    }
+
     async function askQuestion() {
       const question = document.getElementById("question").value.trim();
 
@@ -1254,6 +1383,8 @@
 
       queryStatus.innerText = "분석 중...";
       apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
+      selectTab("answer");
+      document.getElementById("tabFactsCount").innerText = "";
 
       try {
         const data = await loadAsk(question);
@@ -1272,6 +1403,7 @@
         renderRdb(data);
 
         renderFacts(data.graph_facts || []);
+        collapseAsk(question);
 
         queryStatus.innerText = `질문 분석 완료: ${question}`;
         apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";
