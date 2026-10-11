@@ -18,7 +18,7 @@
 - vis 옵션 `layout.randomSeed = 42`, `physics.stabilization.iterations = 200`. `opacity` 옵션으로 흐림 처리하지 않는다(색 치환 + `baseColors` 복원).
 - `index.html` 함수 이름 고정: `loadAsk, renderStats, renderRail, renderFilterChips, applyRelationFilter, renderDateStrip, renderGraph, highlightNodes, clearHighlight, showNodeDetail, renderFacts`. 전역 상태는 `state = { network, nodes, edges, baseColors, nodesById, graph }` 하나.
 - 라벨 한글명: Team 팀, Player 선수, Champion 챔피언, Tournament 대회, League 리그, Match 경기, Staff 스태프, Coach 코치, Objective 오브젝트, Object 오브젝트, Entity 엔티티. 그 외 원문.
-- 커밋 메시지·주석은 한국어. 산문에 대시(—) 금지. 각 커밋 끝에 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+- 커밋 메시지·주석은 한국어. 산문에 대시(—) 금지. 각 커밋 끝에 실제로 그 커밋을 작성한 모델의 `Co-Authored-By` 트레일러를 넣는다(2026-10-11 사용자 결정. 처음 문구는 `Claude Fable 5.1` 고정이었다).
 - `fixtures/*.json`과 `config.js`는 수정 금지.
 - 테스트 명령은 `node --test "tests/*.test.js"`로 고정한다. Node 24에서 `node --test tests/`는 디렉터리를 모듈로 읽으려다 `Cannot find module`로 실패하고, 인자 없는 `node --test`는 `.claude/worktrees/` 아래 사본까지 주워 온다.
 
@@ -344,7 +344,7 @@ test("factNodeIds_first_match_wins", () => { const nodes = [...graph.nodes, {id:
 수정 금지: config.js, fixtures/ 아래 모든 파일, tests/fixtures.test.js, docs/ 아래, 그 외 모든 파일. npm install 을 비롯한 패키지 설치 금지.
 공유 계약: 계획서 Global Constraints 와 "파일 구조" 절의 GraphUtils 함수 시그니처를 글자 단위로 지킨다. 테스트 코드는 계획서의 것을 그대로 쓰고 단언을 약화하지 않는다. 테스트가 틀렸다고 판단되면 고치지 말고 BLOCKED 로 보고한다.
 검증: 각 태스크의 수동 확인 스텝은 브라우저에서 수행한다(Chrome 도구가 있으면 그것으로, 없으면 사용자에게 확인 요청 대신 스크린샷 없이 콘솔·DOM 상태를 javascript 로 읽어 기록). Task 9 Step 4 의 체크리스트 11항목 결과를 /Users/doo._.hyun/Study/Project/lck/Frontend/.claude/reports/t2-checklist.md 에 항목별로 적는다. 콘솔 에러는 0 이어야 한다.
-커밋: 계획서의 각 태스크 마지막 Step 메시지로 태스크 단위 원자 커밋. 마지막 줄에 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` 를 넣는다. 산문에 대시(—) 를 쓰지 않는다.
+커밋: 계획서의 각 태스크 마지막 Step 메시지로 태스크 단위 원자 커밋. 마지막 줄에 실제 작성 모델의 `Co-Authored-By` 트레일러를 넣는다. 산문에 대시(—) 를 쓰지 않는다.
 보고서: /Users/doo._.hyun/Study/Project/lck/Frontend/.claude/reports/t2-report.md 에 태스크별 커밋 해시, `node --test "tests/*.test.js"` 최종 출력 원문, 체크리스트 파일 경로, 계획과 달리 한 결정(있다면)을 적는다.
 완료 형식: 마지막 메시지는 `DONE T2 feat/graph-panel <HEAD 해시>` 한 줄과 보고서 경로. 실패나 막힘은 `BLOCKED T2 <사유>`.
 ```

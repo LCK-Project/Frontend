@@ -16,13 +16,14 @@
 | Task 9 근거 카드 hover 연동, README | 완료 | 95e04b6 | 체크리스트 9, 전체 11항목 |
 | 리뷰 반영(독립 리뷰 3건) | 완료 | 67fe5b5 | 숨은 노드 포커스, graph 없는 응답, README 표 |
 | `main` 머지 | 완료 | f8396d2 | 루트에서 테스트 23 PASS, 트리가 67fe5b5와 동일 |
+| 세로 넘침 수정(체크리스트 10) | 완료 | 62901dd | 1416x900에서 `scrollWidth 1416 === innerWidth 1416`, `scrollHeight 900 === innerHeight 900`, 11항목 재확인 |
 
 ## 계획과 달라진 점
 
 - 테스트 명령을 `node --test tests/`에서 `node --test "tests/*.test.js"`로 바꿨다. Node 24에서 앞의 것은 `Cannot find module`로 실패한다.
-- Task 2~9와 리뷰 반영 커밋의 트레일러가 계획서의 `Claude Fable 5.1`이 아니라 `Claude Opus 5.5`다. 구현 세션이 실제 모델에 맞춰 넣었고, 이력 재작성은 하지 않았다. Task 1과 머지 커밋은 계획서대로 `Claude Fable 5.1`이다.
+- 커밋 트레일러는 실제 작성 모델로 남긴다(사용자 결정). 구현 커밋 10개는 `Claude Opus 5.5`, 오케스트레이터 커밋 3개(909f3b5, f8396d2, f260d22)는 처음 계획서 문구대로 `Claude Fable 5.1`이다. 이력은 다시 쓰지 않았다.
 - `highlightNodes(ids, focusId)`에 선택 인자가 생겼다. 레일 hover에서 이웃끼리의 간선까지 켜지는 것을 막아 스펙 3-3의 "인접 간선만"을 지키기 위해서다.
-- 체크리스트 10: 가로 넘침은 없다(`scrollWidth 1401 = clientWidth 1401`, 가로 스크롤 불가). 다만 스펙의 식 `scrollWidth === innerWidth`는 헤드리스에서 세로 스크롤바 폭 15px 때문에 false다. 원인은 이번 범위 밖의 기존 세로 넘침 13px(헤더 95px 대 `.container`의 `100vh - 82px`)이다.
+- 체크리스트 10: 기존 세로 넘침 13px(헤더 95px 대 `.container`의 `100vh - 82px`)을 body 세로 flex로 고쳐 스펙 식 그대로 통과한다.
 
 ## 남은 일
 
