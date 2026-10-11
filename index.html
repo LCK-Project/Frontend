@@ -506,7 +506,7 @@
       white-space: nowrap;
     }
 
-    .ask-edit {
+    .ask-new {
       flex: none;
       padding: 4px 10px;
       font-size: 12px;
@@ -515,7 +515,7 @@
       border: 1px solid #fed7aa;
     }
 
-    .ask-edit:hover {
+    .ask-new:hover {
       background: #ffedd5;
     }
 
@@ -737,7 +737,7 @@
       <div id="askSummary" class="ask-summary" hidden>
         <span class="ask-summary-label">질문</span>
         <span id="askSummaryText" class="ask-summary-text"></span>
-        <button type="button" class="ask-edit" onclick="expandAsk()">수정</button>
+        <button type="button" class="ask-new" onclick="newQuestion()">새 질문</button>
       </div>
 
       <h2>선택한 노드</h2>
@@ -1352,10 +1352,13 @@
       document.getElementById("askSummary").hidden = false;
     }
 
-    function expandAsk() {
+    // 새 질문: 요약 줄을 닫고 입력창을 비운 채 다시 연다. 결과는 다음 질문 전까지 그대로 둔다.
+    function newQuestion() {
       document.getElementById("askSummary").hidden = true;
       document.getElementById("askBox").hidden = false;
-      document.getElementById("question").focus();
+      const input = document.getElementById("question");
+      input.value = "";
+      input.focus();
     }
 
     async function askQuestion() {
