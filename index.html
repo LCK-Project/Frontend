@@ -451,9 +451,15 @@
       font-size: 14px;
     }
 
-    .chunk-card h4 {
-      margin: 0 0 8px 0;
-      color: #92400e;
+    .fact-card:hover {
+      border-color: #fed7aa;
+      background: #fff7ed;
+    }
+
+    .fact-evidence {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #6b7280;
     }
 
     .rdb-box {
@@ -655,6 +661,8 @@
       Entity: { background: "#9ca3af", border: "#6b7280" }
     };
     const EDGE_COLOR = "#94a3b8";
+    const EDGE_ACTIVE_COLOR = "#475569";
+    const SELECTED_BORDER = "#111827";
     // 흐림 처리용 색. opacity 옵션 대신 색을 치환한다.
     const DIM_NODE_COLOR = { background: "#f3f4f6", border: "#e5e7eb" };
     const DIM_EDGE_COLOR = "#e5e7eb";
@@ -670,6 +678,22 @@
 
     function groupColor(label) {
       return GROUP_COLORS[label] || GROUP_COLORS.Entity;
+    }
+
+    // 선택·hover 상태 색까지 함께 정해야 선택된 노드와 간선도 흐림 처리와 복원을 그대로 따른다.
+    function nodeColor(base, selectedBorder) {
+      return {
+        background: base.background,
+        border: base.border,
+        highlight: { background: base.background, border: selectedBorder },
+        hover: { background: base.background, border: base.border }
+      };
+    }
+
+    function edgeColor(dim) {
+      return dim
+        ? { color: DIM_EDGE_COLOR, highlight: DIM_EDGE_COLOR, hover: DIM_EDGE_COLOR }
+        : { color: EDGE_COLOR, highlight: EDGE_ACTIVE_COLOR, hover: EDGE_ACTIVE_COLOR };
     }
 
     function renderGraph(graph) {
@@ -695,7 +719,7 @@
             id: node.id,
             label: node.name,
             group: node.label,
-            color: { background: color.background, border: color.border }
+            color: nodeColor(state.baseColors[node.id], SELECTED_BORDER)
           };
         })
       );
@@ -707,7 +731,8 @@
           from: link.source,
           to: link.target,
           label: link.type,
-          arrows: "to"
+          arrows: "to",
+          color: edgeColor(false)
         }))
       );
 
@@ -732,9 +757,7 @@
             size: 11,
             align: "middle"
           },
-          color: {
-            color: EDGE_COLOR
-          },
+          color: edgeColor(false),
           smooth: true
         },
         groups,
@@ -766,19 +789,23 @@
     }
 
     // ids 와 그 사이 간선만 원래 색으로 두고 나머지는 회색으로 치환한다.
-    function highlightNodes(ids) {
+    // focusId 를 주면 간선은 그 노드에 닿는 것만 남긴다(레일 hover 의 "인접 간선만").
+    function highlightNodes(ids, focusId) {
       if (!state.nodes) return;
       const keep = new Set(ids);
       state.nodes.update(state.nodes.getIds().map(id => ({
         id,
-        color: keep.has(id) ? { ...state.baseColors[id] } : { ...DIM_NODE_COLOR },
+        color: keep.has(id)
+          ? nodeColor(state.baseColors[id], SELECTED_BORDER)
+          : nodeColor(DIM_NODE_COLOR, DIM_NODE_COLOR.border),
         font: { color: keep.has(id) ? FONT_COLOR : DIM_FONT_COLOR }
       })));
       state.edges.update(state.edges.get().map(edge => {
-        const on = keep.has(edge.from) && keep.has(edge.to);
+        const on = keep.has(edge.from) && keep.has(edge.to)
+          && (focusId === undefined || edge.from === focusId || edge.to === focusId);
         return {
           id: edge.id,
-          color: { color: on ? EDGE_COLOR : DIM_EDGE_COLOR },
+          color: edgeColor(!on),
           font: { color: on ? FONT_COLOR : DIM_FONT_COLOR }
         };
       }));
@@ -788,12 +815,12 @@
       if (!state.nodes) return;
       state.nodes.update(state.nodes.getIds().map(id => ({
         id,
-        color: { ...state.baseColors[id] },
+        color: nodeColor(state.baseColors[id], SELECTED_BORDER),
         font: { color: FONT_COLOR }
       })));
       state.edges.update(state.edges.getIds().map(id => ({
         id,
-        color: { color: EDGE_COLOR },
+        color: edgeColor(false),
         font: { color: FONT_COLOR }
       })));
     }
@@ -937,7 +964,7 @@
           </span>
         `;
 
-        item.addEventListener("mouseenter", () => highlightNodes([node.id, ...neighborIds(node.id)]));
+        item.addEventListener("mouseenter", () => highlightNodes([node.id, ...neighborIds(node.id)], node.id));
         item.addEventListener("mouseleave", () => clearHighlight());
         item.addEventListener("click", () => {
           showNodeDetail(node.id);
@@ -1056,6 +1083,41 @@
 
     window.addEventListener("resize", () => renderDateStrip(state.graph));
 
+    function renderFacts(facts) {
+      const box = document.getElementById("chunks");
+      box.innerHTML = "";
+
+      if (!facts || facts.length === 0) {
+        box.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
+        return;
+      }
+
+      facts.forEach(fact => {
+        const card = document.createElement("div");
+        card.className = "chunk-card fact-card";
+
+        const text = document.createElement("div");
+        text.innerText = `${fact.source} -[${fact.relation}]-> ${fact.target}`;
+        card.appendChild(text);
+
+        if (fact.evidence && fact.evidence.text) {
+          const evidence = document.createElement("div");
+          evidence.className = "fact-evidence";
+          evidence.innerText = fact.evidence.text;
+          card.appendChild(evidence);
+        }
+
+        // 이름이 그래프에 없으면 아무 일도 하지 않는다. 동명이인은 첫 매치만 쓴다.
+        card.addEventListener("mouseenter", () => {
+          const found = GraphUtils.factNodeIds(fact, (state.graph && state.graph.nodes) || []);
+          const ids = [found.sourceId, found.targetId].filter(id => id !== null);
+          if (ids.length > 0) highlightNodes(ids);
+        });
+        card.addEventListener("mouseleave", () => clearHighlight());
+        box.appendChild(card);
+      });
+    }
+
     function renderStats(data) {
       const stats = GraphUtils.computeStats(data);
       document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
@@ -1173,23 +1235,7 @@
         renderDateStrip(data.graph);
         renderRdb(data);
 
-        chunksDiv.innerHTML = "";
-
-        const chunks = data.related_chunks || [];
-
-        if (chunks.length === 0) {
-          chunksDiv.innerHTML = '<div class="chunk-card empty">조회된 KG 관계가 없습니다.</div>';
-        } else {
-          chunks.forEach((chunk, index) => {
-            const div = document.createElement("div");
-            div.className = "chunk-card";
-            div.innerHTML = `
-              <h4>KG 관계 ${index + 1}</h4>
-              <p>${escapeHtml(chunk.slice(0, 320))}</p>
-            `;
-            chunksDiv.appendChild(div);
-          });
-        }
+        renderFacts(data.graph_facts || []);
 
         queryStatus.innerText = `질문 분석 완료: ${question}`;
         apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";
