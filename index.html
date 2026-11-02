@@ -223,6 +223,53 @@
       overflow: hidden;
     }
 
+    /* 그래프 박스와 전체화면 버튼 */
+    .graph-frame {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .graph-frame .graph-box {
+      flex: 1;
+    }
+
+    .graph-fs-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 5;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .graph-fs-btn:hover {
+      background: #ffffff;
+      color: #d97706;
+      border-color: #fed7aa;
+    }
+
+    /* 전체화면일 때는 그래프가 화면을 다 쓴다 */
+    .graph-frame:fullscreen {
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .graph-frame:fullscreen .graph-box {
+      height: 100%;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+    }
+
     .graph-body {
       display: grid;
       grid-template-columns: 190px minmax(0, 1fr);
@@ -962,6 +1009,10 @@
         height: 430px;
       }
 
+      .graph-frame:fullscreen .graph-box {
+        height: 100%;
+      }
+
       .graph-panel .rail {
         max-height: 560px;
       }
@@ -1021,7 +1072,11 @@
             <div id="filterChips" class="filter-chips"></div>
             <div id="legend" class="legend" aria-label="노드 색상 범례"></div>
           </div>
-          <div id="graph" class="graph-box"></div>
+          <div id="graphFrame" class="graph-frame">
+            <div id="graph" class="graph-box"></div>
+            <button type="button" id="fullscreenBtn" class="graph-fs-btn" onclick="toggleGraphFullscreen()"
+                    title="전체화면 (Esc 로 닫기)" aria-label="그래프 전체화면">⛶ 전체화면</button>
+          </div>
           <div class="date-strip">
             <svg id="dateStrip" height="56" role="img" aria-label="경기 날짜 스트립"></svg>
             <div id="dateStripEmpty" class="rail-empty" hidden>경기 노드가 없습니다</div>
@@ -1264,6 +1319,33 @@
         }
       });
     }
+
+    // ===== 그래프 전체화면 =====
+    function toggleGraphFullscreen() {
+      const frame = document.getElementById("graphFrame");
+      if (document.fullscreenElement === frame) {
+        document.exitFullscreen();
+      } else if (frame.requestFullscreen) {
+        frame.requestFullscreen().catch(err => console.warn("전체화면 실패:", err));
+      }
+    }
+
+    // 전체화면에 들어가고 나올 때 캔버스 크기를 다시 재고 전체가 보이게 맞춘다.
+    // 화면 크기가 바뀌므로 축소 하한(minScale)도 새 크기 기준으로 다시 잡는다.
+    document.addEventListener("fullscreenchange", () => {
+      const on = document.fullscreenElement === document.getElementById("graphFrame");
+      const btn = document.getElementById("fullscreenBtn");
+      btn.innerText = on ? "✕ 닫기" : "⛶ 전체화면";
+      btn.title = on ? "전체화면 닫기 (Esc)" : "전체화면 (Esc 로 닫기)";
+      if (!state.network) return;
+      requestAnimationFrame(() => {
+        state.network.setSize("100%", "100%");
+        state.network.redraw();
+        state.minScale = null;
+        state.network.fit();
+        state.minScale = state.network.getScale();
+      });
+    });
 
     function neighborIds(nodeId) {
       const ids = new Set();
