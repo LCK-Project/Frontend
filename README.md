@@ -30,11 +30,21 @@ API_BASE_URL=http://localhost:9000 WEB_HOST_PORT=8080 docker compose up --build
 Frontend/
 ├── index.html             # 대시보드 전체 (마크업 + 스타일 + DOM·vis-network 조작)
 ├── assets/graph-utils.js  # 관계 묶음 판정·레일 정렬·통계·날짜 스트립·로컬 상세를 계산하는 순수 함수
+├── assets/chat-store.js   # 질문·답변 턴, 활성 답변, 채팅/분석 모드를 관리하는 순수 상태 모듈
 ├── config.js              # 백엔드 API 주소 설정
 ├── fixtures/              # 목 모드에서 읽는 /ask·/node 응답 픽스처
 ├── tests/                 # Node 내장 테스트 러너용 단위 테스트
 └── README.md
 ```
+
+## 화면 구성
+
+왼쪽은 지식그래프 패널(통계, 엔티티 레일, 관계 필터, 그래프, 날짜 스트립)로 고정이고, 오른쪽은 "채팅"과 "분석" 두 모드를 오갑니다.
+
+- **채팅**: 질문과 답변이 말풍선으로 아래에 쌓입니다. 답변을 기다리는 동안은 입력이 잠깁니다. 각 답변의 "분석 보기"를 누르면 분석 모드로 바뀌고 왼쪽 그래프도 그 답변의 데이터로 바뀝니다.
+- **분석**: 활성 답변의 선택한 노드, 답변 / 지식그래프 근거 / RDB 근거 탭을 보여줍니다. 새 답변이 오면 그 답변이 활성이 되지만 모드는 바뀌지 않습니다.
+
+백엔드 `POST /ask` 는 이전 대화를 받지 않으므로, 대화가 쌓여도 각 질문은 독립적으로 처리됩니다. 설계는 `docs/specs/2026-11-03-chat-mode-design.md` 에 있습니다.
 
 ## 실행 방법
 
@@ -67,13 +77,13 @@ npx serve .
 ### 4. 백엔드 없이 열기 (목 모드)
 
 주소 뒤에 `?mock=1` 을 붙이면 백엔드를 호출하지 않고 픽스처를 읽습니다.
-`http://localhost:5500/index.html?mock=1` 에서 아무 질문이나 입력하고 "질문하기"를 누르면
+`http://localhost:5500/index.html?mock=1` 에서 아무 질문이나 입력하고 "전송"을 누르면
 `fixtures/ask_sample.json` 이 응답으로 쓰이고, 노드 상세는 `fixtures/node_sample.json` 에서 같은 id 를 찾습니다.
 픽스처에 없는 노드는 현재 그래프의 1홉 이웃으로 상세를 만듭니다. 입력한 질문 내용은 무시됩니다.
 
 ## 테스트
 
-`assets/graph-utils.js` 의 순수 함수와 픽스처는 Node 내장 테스트 러너로 검증합니다. 패키지 설치는 필요 없습니다(Node 24 이상).
+`assets/graph-utils.js`, `assets/chat-store.js` 의 순수 함수와 픽스처는 Node 내장 테스트 러너로 검증합니다. 패키지 설치는 필요 없습니다(Node 24 이상).
 
 ```bash
 node --test "tests/*.test.js"
