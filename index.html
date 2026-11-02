@@ -4,6 +4,7 @@
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="config.js"></script>
   <script src="assets/graph-utils.js"></script>
+  <script src="assets/chat-store.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LCK Knowledge Graph Dashboard</title>
@@ -514,50 +515,178 @@
       min-height: 120px;
     }
 
-    /* 질문 요약 줄. 입력창이 접힌 뒤에 보인다 */
-    .ask-summary {
+    /* 오른쪽 패널은 채팅 / 분석 두 모드를 세로 flex 로 담는다 */
+    .result-panel {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .mode-switch {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      flex: none;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 9px;
+      background: transparent;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .mode-btn.active {
+      background: #ffffff;
+      color: #d97706;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .mode-view {
+      display: none;
+      min-height: 0;
+      margin-top: 16px;
+    }
+
+    .mode-view.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    #analysisView.active {
+      display: block;
+      overflow: auto;
+    }
+
+    /* 채팅 모드: 말풍선 목록이 남는 높이를 다 쓰고 안에서 스크롤된다 */
+    .chat-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
       gap: 10px;
-      padding: 12px 14px;
+      padding: 4px 2px;
+    }
+
+    .chat-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      text-align: center;
+      margin: auto 0;
+    }
+
+    .bubble {
+      max-width: 88%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .bubble-q {
+      align-self: flex-end;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble-a {
+      align-self: flex-start;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble-a.loading {
+      color: #9ca3af;
+    }
+
+    .bubble-a.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .analyze-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #92400e;
+      border: 1px solid #fed7aa;
+    }
+
+    .analyze-btn:hover {
+      background: #ffedd5;
+    }
+
+    .analyze-btn.active::before {
+      content: "✓ ";
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      margin-top: 12px;
+      flex: none;
+    }
+
+    .chat-input textarea {
+      height: 56px;
+      padding: 10px 12px;
+    }
+
+    .chat-input .ask-btn {
+      width: auto;
+      margin-top: 0;
+      padding: 12px 18px;
+      flex: none;
+    }
+
+    .chat-input .ask-btn:disabled,
+    .chat-input textarea:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .suggestions[hidden] {
+      display: none;
+    }
+
+    /* 분석 모드 머리: 어느 질문의 분석인지 */
+    .analysis-question {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      padding: 10px 14px;
       border: 1px solid #fed7aa;
       border-radius: 12px;
       background: #fff7ed;
       font-size: 13px;
     }
 
-    .ask-summary-label {
+    .analysis-question .label {
       flex: none;
       color: #92400e;
       font-weight: 700;
     }
 
-    .ask-summary-text {
-      flex: 1;
-      min-width: 0;
-      color: #111827;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* display:flex 가 hidden 속성을 덮지 않도록 명시한다 */
-    .ask-summary[hidden],
-    .ask-box[hidden] {
-      display: none;
-    }
-
-    .ask-new {
-      flex: none;
-      padding: 4px 10px;
-      font-size: 12px;
-      background: #ffffff;
-      color: #92400e;
-      border: 1px solid #fed7aa;
-    }
-
-    .ask-new:hover {
-      background: #ffedd5;
+    .analysis-empty {
+      color: #9ca3af;
+      font-size: 13px;
+      padding: 40px 0;
+      text-align: center;
     }
 
     /* 결과 탭 */
@@ -772,54 +901,64 @@
       </div>
     </section>
 
-    <!-- 오른쪽 질의와 결과 패널 -->
+    <!-- 오른쪽 패널. 채팅 모드와 분석 모드를 오간다 -->
     <section class="panel result-panel">
-      <!-- 질문을 보내면 입력창은 접히고 아래 한 줄 요약만 남는다 -->
-      <div id="askBox" class="ask-box">
-        <h2>자연어 질의</h2>
-        <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘"></textarea>
-        <button class="ask-btn" onclick="askQuestion()">질문하기</button>
+      <div class="mode-switch" role="tablist">
+        <button type="button" class="mode-btn active" role="tab" data-mode="chat" onclick="switchMode('chat')">채팅</button>
+        <button type="button" class="mode-btn" role="tab" data-mode="analysis" onclick="switchMode('analysis')">분석</button>
+      </div>
 
-        <div class="suggestions">
+      <!-- 채팅 모드: 질문·답변 말풍선이 쌓이고 아래에 입력창 -->
+      <div id="chatView" class="mode-view active">
+        <div id="chatList" class="chat-list">
+          <div class="chat-empty">질문을 입력하면 대화가 여기에 쌓입니다.</div>
+        </div>
+        <div id="suggestions" class="suggestions">
           <button onclick="setQuestion('젠지 우승 전략을 알려줘')">젠지 우승 전략을 알려줘</button>
           <button onclick="setQuestion('페이커가 사용한 챔피언을 알려줘')">페이커가 사용한 챔피언을 알려줘</button>
           <button onclick="setQuestion('T1과 Gen.G의 관계를 알려줘')">T1과 Gen.G의 관계를 알려줘</button>
           <button onclick="setQuestion('2025 스프링 MVP 관련 내용을 알려줘')">2025 스프링 MVP 관련 내용을 알려줘</button>
         </div>
-      </div>
-      <div id="askSummary" class="ask-summary" hidden>
-        <span class="ask-summary-label">질문</span>
-        <span id="askSummaryText" class="ask-summary-text"></span>
-        <button type="button" class="ask-new" onclick="newQuestion()">새 질문</button>
-      </div>
-
-      <h2>선택한 노드</h2>
-      <section id="nodeDetail" class="node-detail">
-        <div class="node-detail-empty">그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.</div>
-      </section>
-
-      <!-- 결과는 탭 3개로 나눈다. 답변 / 지식그래프 근거 / RDB 근거 -->
-      <div class="tabs" role="tablist">
-        <button type="button" class="tab active" role="tab" data-tab="answer" onclick="selectTab('answer')">답변</button>
-        <button type="button" class="tab" role="tab" data-tab="facts" onclick="selectTab('facts')">지식그래프 근거<span id="tabFactsCount" class="tab-count"></span></button>
-        <button type="button" class="tab" role="tab" data-tab="rdb" onclick="selectTab('rdb')">RDB 근거</button>
-      </div>
-
-      <div id="tabAnswer" class="tab-pane active" role="tabpanel">
-        <div id="answer" class="answer-box empty">
-          아직 질문이 입력되지 않았습니다.
+        <div class="chat-input">
+          <textarea id="question" placeholder="예: 젠지 우승 전략을 알려줘 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>
+          <button id="askBtn" class="ask-btn" onclick="askQuestion()">전송</button>
         </div>
       </div>
 
-      <div id="tabFacts" class="tab-pane" role="tabpanel">
-        <div id="chunks">
-          <div class="chunk-card empty">조회된 KG 관계가 여기에 표시됩니다.</div>
-        </div>
-      </div>
+      <!-- 분석 모드: 활성 답변의 선택한 노드 / 답변 / 지식그래프 근거 / RDB 근거 -->
+      <div id="analysisView" class="mode-view">
+        <div id="analysisEmpty" class="analysis-empty">아직 분석할 답변이 없습니다. 채팅에서 질문해 주세요.</div>
+        <div id="analysisBody" hidden>
+          <div class="analysis-question">
+            <span class="label">분석 대상</span>
+            <span id="analysisQuestionText"></span>
+          </div>
 
-      <div id="tabRdb" class="tab-pane" role="tabpanel">
-        <div id="rdbAnswer" class="rdb-box empty">조회된 RDB 통계가 여기에 표시됩니다.</div>
-        <div id="rdbFacts"></div>
+          <h2>선택한 노드</h2>
+          <section id="nodeDetail" class="node-detail">
+            <div class="node-detail-empty">그래프 노드나 레일 항목을 선택하면 상세가 여기에 표시됩니다.</div>
+          </section>
+
+          <!-- 결과는 탭 3개로 나눈다. 답변 / 지식그래프 근거 / RDB 근거 -->
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab active" role="tab" data-tab="answer" onclick="selectTab('answer')">답변</button>
+            <button type="button" class="tab" role="tab" data-tab="facts" onclick="selectTab('facts')">지식그래프 근거<span id="tabFactsCount" class="tab-count"></span></button>
+            <button type="button" class="tab" role="tab" data-tab="rdb" onclick="selectTab('rdb')">RDB 근거</button>
+          </div>
+
+          <div id="tabAnswer" class="tab-pane active" role="tabpanel">
+            <div id="answer" class="answer-box empty"></div>
+          </div>
+
+          <div id="tabFacts" class="tab-pane" role="tabpanel">
+            <div id="chunks"></div>
+          </div>
+
+          <div id="tabRdb" class="tab-pane" role="tabpanel">
+            <div id="rdbAnswer" class="rdb-box empty"></div>
+            <div id="rdbFacts"></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -1466,81 +1605,151 @@
       });
     }
 
-    // 질문을 보낸 뒤 입력창을 접고 한 줄 요약만 남긴다.
-    function collapseAsk(question) {
-      document.getElementById("askBox").hidden = true;
-      document.getElementById("askSummaryText").innerText = question;
-      document.getElementById("askSummary").hidden = false;
+    // ===== 채팅 모드 =====
+    // 대화 상태는 ChatStore 가 진실이고 DOM 은 그 결과다. 말풍선은 매번 state() 로 다시 그린다.
+    const chat = ChatStore.createChatStore();
+    // 왼쪽 그래프 패널과 분석 모드에 마지막으로 그린 턴. 같은 턴이면 다시 그리지 않는다.
+    let renderedTurnId = null;
+
+    function switchMode(mode) {
+      chat.setMode(mode);
+      renderMode();
     }
 
-    // 새 질문: 요약 줄을 닫고 입력창을 비운 채 다시 연다. 결과는 다음 질문 전까지 그대로 둔다.
-    function newQuestion() {
-      document.getElementById("askSummary").hidden = true;
-      document.getElementById("askBox").hidden = false;
-      const input = document.getElementById("question");
-      input.value = "";
-      input.focus();
+    function renderMode() {
+      const { mode } = chat.state();
+      document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+      document.getElementById("chatView").classList.toggle("active", mode === "chat");
+      document.getElementById("analysisView").classList.toggle("active", mode === "analysis");
+    }
+
+    function renderChat() {
+      const { turns, activeId } = chat.state();
+      const list = document.getElementById("chatList");
+      list.innerHTML = "";
+
+      if (turns.length === 0) {
+        list.innerHTML = `<div class="chat-empty">질문을 입력하면 대화가 여기에 쌓입니다.</div>`;
+      }
+
+      turns.forEach(turn => {
+        const q = document.createElement("div");
+        q.className = "bubble bubble-q";
+        q.innerText = turn.question;
+        list.appendChild(q);
+
+        const a = document.createElement("div");
+        a.className = "bubble bubble-a";
+        if (turn.status === "loading") {
+          a.classList.add("loading");
+          a.innerText = "AI가 지식그래프 관계를 바탕으로 답변을 생성 중입니다...";
+        } else if (turn.status === "error") {
+          a.classList.add("error");
+          a.innerText = turn.error;
+        } else {
+          const body = document.createElement("div");
+          body.innerText = turn.data.answer || "답변을 생성하지 못했습니다.";
+          a.appendChild(body);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "analyze-btn" + (turn.id === activeId ? " active" : "");
+          btn.innerText = "분석 보기";
+          btn.addEventListener("click", () => {
+            chat.activate(turn.id);
+            applyActive();
+            renderChat();
+            renderMode();
+          });
+          a.appendChild(btn);
+        }
+        list.appendChild(a);
+      });
+
+      document.getElementById("suggestions").hidden = turns.length > 0;
+      const loading = chat.isLoading();
+      document.getElementById("question").disabled = loading;
+      document.getElementById("askBtn").disabled = loading;
+      list.scrollTop = list.scrollHeight;
+    }
+
+    // 활성 답변을 왼쪽 그래프 패널과 분석 모드에 반영한다. 활성 답변이 없으면 빈 상태를 보인다.
+    function applyActive() {
+      const turn = chat.activeTurn();
+      const empty = document.getElementById("analysisEmpty");
+      const body = document.getElementById("analysisBody");
+
+      if (!turn) {
+        empty.hidden = false;
+        body.hidden = true;
+        return;
+      }
+      empty.hidden = true;
+      body.hidden = false;
+      if (turn.id === renderedTurnId) return;
+      renderedTurnId = turn.id;
+
+      const data = turn.data;
+      document.getElementById("analysisQuestionText").innerText = turn.question;
+
+      const answerDiv = document.getElementById("answer");
+      answerDiv.className = "answer-box";
+      answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
+
+      resetNodeDetail();
+      renderStats(data);
+      renderGraph(data.graph);
+      renderRail(data.graph);
+      renderFilterChips(data.graph);
+      // graph 키가 없거나 null 인 응답도 질문 뒤에는 "없음" 문구를 띄운다.
+      renderDateStrip(data.graph || { nodes: [], links: [] });
+      renderRdb(data);
+      renderFacts(data.graph_facts || []);
+
+      document.getElementById("queryStatus").innerText = `질문 분석 완료: ${turn.question}`;
     }
 
     async function askQuestion() {
-      const question = document.getElementById("question").value.trim();
+      const input = document.getElementById("question");
+      const question = input.value.trim();
+      if (!question) return;
 
-      if (!question) {
-        alert("질문을 입력해주세요.");
-        return;
-      }
+      const id = chat.ask(question);
+      if (!id) return; // 이미 답변을 기다리는 중
 
-      const answerDiv = document.getElementById("answer");
-      const chunksDiv = document.getElementById("chunks");
+      input.value = "";
+      renderChat();
+
       const queryStatus = document.getElementById("queryStatus");
       const apiStatus = document.getElementById("apiStatus");
-
-      answerDiv.className = "answer-box loading";
-      answerDiv.innerText = "AI가 지식그래프 관계를 바탕으로 답변을 생성 중입니다...";
-
-      chunksDiv.innerHTML = "";
-
-      const rdbAnswerDiv = document.getElementById("rdbAnswer");
-      rdbAnswerDiv.className = "rdb-box loading";
-      rdbAnswerDiv.innerText = "RDB 통계를 조회 중입니다...";
-      document.getElementById("rdbFacts").innerHTML = "";
-
       queryStatus.innerText = "분석 중...";
       apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
-      selectTab("answer");
-      document.getElementById("tabFactsCount").innerText = "";
 
       try {
         const data = await loadAsk(question);
         console.log("ASK RESPONSE:", data);
-        console.log("GRAPH DATA:", data.graph);
-
-        answerDiv.className = "answer-box";
-        answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
-        resetNodeDetail();
-        renderStats(data);
-        renderGraph(data.graph);
-        renderRail(data.graph);
-        renderFilterChips(data.graph);
-        // graph 키가 없거나 null 인 응답도 질문 뒤에는 "없음" 문구를 띄운다.
-        renderDateStrip(data.graph || { nodes: [], links: [] });
-        renderRdb(data);
-
-        renderFacts(data.graph_facts || []);
-        collapseAsk(question);
-
-        queryStatus.innerText = `질문 분석 완료: ${question}`;
+        chat.resolve(id, data);
         apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";
+        applyActive();
       } catch (error) {
-        answerDiv.className = "answer-box";
-        answerDiv.innerText = "오류가 발생했습니다. FastAPI 서버가 실행 중인지 확인해주세요.";
-        rdbAnswerDiv.className = "rdb-box empty";
-        rdbAnswerDiv.innerText = "RDB 통계를 불러오지 못했습니다.";
+        chat.fail(id, "오류가 발생했습니다. FastAPI 서버가 실행 중인지 확인해주세요.");
         queryStatus.innerText = "오류 발생";
         apiStatus.innerText = "API 오류";
         console.error(error);
       }
+      renderChat();
+      input.focus();
     }
+
+    // Enter 는 전송, Shift+Enter 는 줄바꿈
+    document.getElementById("question").addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        askQuestion();
+      }
+    });
 
     function escapeHtml(text) {
       const div = document.createElement("div");
