@@ -185,36 +185,6 @@
       color: #6b7280;
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .stat-card {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 14px;
-      padding: 14px;
-      min-width: 0;
-    }
-
-    .stat-card .label {
-      color: #92400e;
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-
-    .stat-card .value {
-      font-size: 16px;
-      font-weight: 800;
-      color: #111827;
-      line-height: 1.35;
-      word-break: keep-all;
-      overflow-wrap: break-word;
-    }
-
     .graph-box {
       height: 430px;
       border-radius: 18px;
@@ -1017,9 +987,6 @@
         max-height: 560px;
       }
 
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
     }
   </style>
 </head>
@@ -1039,25 +1006,6 @@
       <div class="main-title">
         <h2>지식그래프 시각화</h2>
         <span class="status" id="queryStatus">질문을 입력하면 분석이 시작됩니다.</span>
-      </div>
-
-      <div class="stats">
-        <div class="stat-card">
-          <div class="label">핵심 분석 대상</div>
-          <div class="value" id="statSeeds">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">관련 경기 · 관계</div>
-          <div class="value" id="statMatches">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">분석 기간</div>
-          <div class="value" id="statPeriod">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">참조 기사</div>
-          <div class="value" id="statArticles">-</div>
-        </div>
       </div>
 
       <div class="graph-body">
@@ -1785,14 +1733,6 @@
       });
     }
 
-    function renderStats(data) {
-      const stats = GraphUtils.computeStats(data);
-      document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
-      document.getElementById("statMatches").innerText = `경기 ${stats.matchCount} · 관계 ${stats.linkCount}`;
-      document.getElementById("statPeriod").innerText = stats.period;
-      document.getElementById("statArticles").innerText = stats.articleCount;
-    }
-
     async function loadAsk(question, skipClarify = false, scope = null) {
       if (MOCK) {
         // 목 모드: 범위(연도)가 없는 첫 질문은 되묻기 픽스처, 그 외는 답변 픽스처
@@ -1990,7 +1930,6 @@
       answerDiv.innerHTML = MarkdownLite.render(data.answer || "답변을 생성하지 못했습니다.");
 
       resetNodeDetail();
-      renderStats(data);
       renderGraph(data.graph);
       renderRail(data.graph);
       renderFilterChips(data.graph);
