@@ -185,42 +185,59 @@
       color: #6b7280;
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .stat-card {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 14px;
-      padding: 14px;
-      min-width: 0;
-    }
-
-    .stat-card .label {
-      color: #92400e;
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-
-    .stat-card .value {
-      font-size: 16px;
-      font-weight: 800;
-      color: #111827;
-      line-height: 1.35;
-      word-break: keep-all;
-      overflow-wrap: break-word;
-    }
-
     .graph-box {
       height: 430px;
       border-radius: 18px;
       background: #ffffff;
       border: 1px solid #e5e7eb;
       overflow: hidden;
+    }
+
+    /* 그래프 박스와 전체화면 버튼 */
+    .graph-frame {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .graph-frame .graph-box {
+      flex: 1;
+    }
+
+    .graph-fs-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 5;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .graph-fs-btn:hover {
+      background: #ffffff;
+      color: #d97706;
+      border-color: #fed7aa;
+    }
+
+    /* 전체화면일 때는 그래프가 화면을 다 쓴다 */
+    .graph-frame:fullscreen {
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .graph-frame:fullscreen .graph-box {
+      height: 100%;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
     }
 
     .graph-body {
@@ -234,15 +251,90 @@
       min-width: 0;
     }
 
+    /* 관계 필터 칩은 왼쪽, 노드 색상 범례는 오른쪽. 좁으면 줄바꿈한다 */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px 16px;
+      margin-bottom: 10px;
+    }
+
     .filter-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 10px;
     }
 
     .filter-chips:empty {
       display: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 10px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .legend:empty {
+      display: none;
+    }
+
+    .legend-title {
+      font-weight: 700;
+      color: #9ca3af;
+      margin-right: 2px;
+    }
+
+    .legend-item {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      cursor: help;
+    }
+
+    /* 마우스를 올리면(또는 키보드 포커스) 라벨 설명 말풍선 */
+    .legend-item[data-tip]:hover::after,
+    .legend-item[data-tip]:focus::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 20;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #111827;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      white-space: normal;
+      width: max-content;
+      max-width: 240px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+    }
+
+    .legend-item:focus {
+      outline: none;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid;
+      flex: none;
+    }
+
+    .legend-count {
+      color: #9ca3af;
     }
 
     .chip {
@@ -887,13 +979,14 @@
         height: 430px;
       }
 
+      .graph-frame:fullscreen .graph-box {
+        height: 100%;
+      }
+
       .graph-panel .rail {
         max-height: 560px;
       }
 
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
     }
   </style>
 </head>
@@ -915,25 +1008,6 @@
         <span class="status" id="queryStatus">질문을 입력하면 분석이 시작됩니다.</span>
       </div>
 
-      <div class="stats">
-        <div class="stat-card">
-          <div class="label">핵심 분석 대상</div>
-          <div class="value" id="statSeeds">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">관련 경기 · 관계</div>
-          <div class="value" id="statMatches">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">분석 기간</div>
-          <div class="value" id="statPeriod">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">참조 기사</div>
-          <div class="value" id="statArticles">-</div>
-        </div>
-      </div>
-
       <div class="graph-body">
         <aside class="rail">
           <div class="rail-head">엔티티<span id="railCount" class="rail-count"></span></div>
@@ -942,8 +1016,15 @@
           </div>
         </aside>
         <div class="graph-main">
-          <div id="filterChips" class="filter-chips"></div>
-          <div id="graph" class="graph-box"></div>
+          <div class="chip-row">
+            <div id="filterChips" class="filter-chips"></div>
+            <div id="legend" class="legend" aria-label="노드 색상 범례"></div>
+          </div>
+          <div id="graphFrame" class="graph-frame">
+            <div id="graph" class="graph-box"></div>
+            <button type="button" id="fullscreenBtn" class="graph-fs-btn" onclick="toggleGraphFullscreen()"
+                    title="전체화면 (Esc 로 닫기)" aria-label="그래프 전체화면">⛶ 전체화면</button>
+          </div>
           <div class="date-strip">
             <svg id="dateStrip" height="56" role="img" aria-label="경기 날짜 스트립"></svg>
             <div id="dateStripEmpty" class="rail-empty" hidden>경기 노드가 없습니다</div>
@@ -1037,7 +1118,11 @@
       Coach: { background: "#f97316", border: "#ea580c" },
       Objective: { background: "#14b8a6", border: "#0d9488" },
       Object: { background: "#14b8a6", border: "#0d9488" },
-      Entity: { background: "#9ca3af", border: "#6b7280" }
+      Entity: { background: "#9ca3af", border: "#6b7280" },
+      // 유튜브 하이라이트 영상과 그 댓글·의견. 사실 노드와 구분되도록 따로 색을 준다.
+      FanVideo: { background: "#22d3ee", border: "#0891b2" },
+      FanComment: { background: "#a3e635", border: "#65a30d" },
+      FanOpinion: { background: "#818cf8", border: "#4f46e5" }
     };
     const EDGE_COLOR = "#b8c4d4";
     const EDGE_ACTIVE_COLOR = "#475569";
@@ -1186,6 +1271,33 @@
         }
       });
     }
+
+    // ===== 그래프 전체화면 =====
+    function toggleGraphFullscreen() {
+      const frame = document.getElementById("graphFrame");
+      if (document.fullscreenElement === frame) {
+        document.exitFullscreen();
+      } else if (frame.requestFullscreen) {
+        frame.requestFullscreen().catch(err => console.warn("전체화면 실패:", err));
+      }
+    }
+
+    // 전체화면에 들어가고 나올 때 캔버스 크기를 다시 재고 전체가 보이게 맞춘다.
+    // 화면 크기가 바뀌므로 축소 하한(minScale)도 새 크기 기준으로 다시 잡는다.
+    document.addEventListener("fullscreenchange", () => {
+      const on = document.fullscreenElement === document.getElementById("graphFrame");
+      const btn = document.getElementById("fullscreenBtn");
+      btn.innerText = on ? "✕ 닫기" : "⛶ 전체화면";
+      btn.title = on ? "전체화면 닫기 (Esc)" : "전체화면 (Esc 로 닫기)";
+      if (!state.network) return;
+      requestAnimationFrame(() => {
+        state.network.setSize("100%", "100%");
+        state.network.redraw();
+        state.minScale = null;
+        state.network.fit();
+        state.minScale = state.network.getScale();
+      });
+    });
 
     function neighborIds(nodeId) {
       const ids = new Set();
@@ -1467,6 +1579,58 @@
         box.appendChild(button);
       });
       applyRelationFilter(FILTER_ALL);
+      renderLegend(graph);
+    }
+
+    // 범례에 마우스를 올렸을 때 보여줄 라벨 설명
+    const LABEL_DESC = {
+      Team: "LCK 소속 팀",
+      Player: "프로게이머(선수)",
+      Champion: "경기에서 사용된 챔피언",
+      Tournament: "대회 (예: 2025 LCK Cup)",
+      League: "리그 (예: LCK)",
+      Match: "두 팀의 맞대결 한 시리즈. 이름에 경기 날짜가 붙는다",
+      Game: "시리즈 안의 세트 한 판",
+      Staff: "감독·코치 등 코칭스태프",
+      Coach: "코치",
+      Objective: "드래곤·바론 같은 오브젝트",
+      Object: "드래곤·바론 같은 오브젝트",
+      Entity: "종류가 정해지지 않은 개체 (기사에서 뽑은 이름 등)",
+      FanVideo: "유튜브 LCK 하이라이트 영상",
+      FanComment: "하이라이트 영상에 달린 유튜브 댓글",
+      FanOpinion: "팬 댓글에서 정리한 팬 의견"
+    };
+
+    // 노드 색상 범례. 지금 그래프에 있는 라벨만, 많은 순으로 보여준다.
+    function renderLegend(graph) {
+      const box = document.getElementById("legend");
+      box.innerHTML = "";
+      const nodes = (graph && graph.nodes) || [];
+      if (nodes.length === 0) return;
+
+      const counts = {};
+      nodes.forEach(node => {
+        const label = node.label || "Entity";
+        counts[label] = (counts[label] || 0) + 1;
+      });
+      const labels = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+
+      const title = document.createElement("span");
+      title.className = "legend-title";
+      title.innerText = "노드 색";
+      box.appendChild(title);
+
+      labels.forEach(label => {
+        const color = groupColor(label);
+        const item = document.createElement("span");
+        item.className = "legend-item";
+        item.tabIndex = 0;
+        item.dataset.tip = `${LABEL_DESC[label] || label} · 이 그래프에 ${counts[label]}개`;
+        item.innerHTML =
+          `<span class="legend-dot" style="background:${color.background};border-color:${color.border}"></span>` +
+          `${escapeHtml(GraphUtils.labelKo(label))}<span class="legend-count">${counts[label]}</span>`;
+        box.appendChild(item);
+      });
     }
 
     // 선택한 묶음에 속하지 않는 간선과, 보이는 간선에 닿지 않는 노드를 숨긴다.
@@ -1567,14 +1731,6 @@
         });
         box.appendChild(card);
       });
-    }
-
-    function renderStats(data) {
-      const stats = GraphUtils.computeStats(data);
-      document.getElementById("statSeeds").innerText = stats.seeds.slice(0, 3).join(", ") || "-";
-      document.getElementById("statMatches").innerText = `경기 ${stats.matchCount} · 관계 ${stats.linkCount}`;
-      document.getElementById("statPeriod").innerText = stats.period;
-      document.getElementById("statArticles").innerText = stats.articleCount;
     }
 
     async function loadAsk(question, skipClarify = false, scope = null) {
@@ -1774,7 +1930,6 @@
       answerDiv.innerHTML = MarkdownLite.render(data.answer || "답변을 생성하지 못했습니다.");
 
       resetNodeDetail();
-      renderStats(data);
       renderGraph(data.graph);
       renderRail(data.graph);
       renderFilterChips(data.graph);

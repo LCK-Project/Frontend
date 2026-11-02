@@ -13,7 +13,10 @@
     Coach: "코치",
     Objective: "오브젝트",
     Object: "오브젝트",
-    Entity: "엔티티"
+    Entity: "엔티티",
+    FanVideo: "팬 영상",
+    FanComment: "팬 댓글",
+    FanOpinion: "팬 의견"
   };
 
   // 관계 유형 묶음. 배열 순서가 판정 순서다.
