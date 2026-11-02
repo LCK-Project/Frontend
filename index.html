@@ -274,10 +274,38 @@
     }
 
     .legend-item {
+      position: relative;
       display: inline-flex;
       align-items: center;
       gap: 4px;
       white-space: nowrap;
+      cursor: help;
+    }
+
+    /* 마우스를 올리면(또는 키보드 포커스) 라벨 설명 말풍선 */
+    .legend-item[data-tip]:hover::after,
+    .legend-item[data-tip]:focus::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 20;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #111827;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      white-space: normal;
+      width: max-content;
+      max-width: 240px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+    }
+
+    .legend-item:focus {
+      outline: none;
     }
 
     .legend-dot {
@@ -1520,6 +1548,22 @@
       renderLegend(graph);
     }
 
+    // 범례에 마우스를 올렸을 때 보여줄 라벨 설명
+    const LABEL_DESC = {
+      Team: "LCK 소속 팀",
+      Player: "프로게이머(선수)",
+      Champion: "경기에서 사용된 챔피언",
+      Tournament: "대회 (예: 2025 LCK Cup)",
+      League: "리그 (예: LCK)",
+      Match: "두 팀의 맞대결 한 시리즈. 이름에 경기 날짜가 붙는다",
+      Game: "시리즈 안의 세트 한 판",
+      Staff: "감독·코치 등 코칭스태프",
+      Coach: "코치",
+      Objective: "드래곤·바론 같은 오브젝트",
+      Object: "드래곤·바론 같은 오브젝트",
+      Entity: "종류가 정해지지 않은 개체 (기사에서 뽑은 이름 등)"
+    };
+
     // 노드 색상 범례. 지금 그래프에 있는 라벨만, 많은 순으로 보여준다.
     function renderLegend(graph) {
       const box = document.getElementById("legend");
@@ -1543,6 +1587,8 @@
         const color = groupColor(label);
         const item = document.createElement("span");
         item.className = "legend-item";
+        item.tabIndex = 0;
+        item.dataset.tip = `${LABEL_DESC[label] || label} · 이 그래프에 ${counts[label]}개`;
         item.innerHTML =
           `<span class="legend-dot" style="background:${color.background};border-color:${color.border}"></span>` +
           `${escapeHtml(GraphUtils.labelKo(label))}<span class="legend-count">${counts[label]}</span>`;
