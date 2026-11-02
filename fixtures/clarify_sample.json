@@ -5,6 +5,7 @@
   "clarify": {
     "axis": "tournament",
     "prompt": "어느 대회 기준으로 알아볼까요?",
+    "template": "{question} ({option} 기준)",
     "options": [
       "2026 LCK Rounds 3-4",
       "2026 LCK Rounds 1-2",
