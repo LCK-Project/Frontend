@@ -1,15 +1,21 @@
 // 대화 상태 모듈. DOM 과 fetch 를 모르는 순수 상태 저장소다.
 // 브라우저에서는 window.ChatStore, Node 에서는 module.exports 로 쓴다.
-// 계약은 docs/specs/2026-11-03-chat-mode-design.md 6절에 있다.
+// 계약은 docs/specs/2026-11-03-chat-mode-design.md 6절과
+// Backend/docs/specs/2026-11-03-clarify-design.md 3-6절에 있다.
 (function () {
+  // 선택지를 고른 뒤 다시 보낼 질문. 원래 질문에 범위를 붙인다.
+  function composeRefinedQuestion(original, option) {
+    return `${original} (${option} 기준)`;
+  }
+
   function createChatStore() {
     let seq = 0;
     const turns = [];            // Turn[] 추가 순서
     let activeId = null;         // status === "done" 인 턴의 id 또는 null
     let mode = "chat";           // "chat" | "analysis"
 
-    // Turn = { id: string, question: string, status: "loading"|"done"|"error",
-    //          data: object|null, error: string|null }
+    // Turn = { id: string, question: string, status: "loading"|"done"|"error"|"clarify",
+    //          data: object|null, error: string|null, skipClarify: boolean, choice: string|null }
 
     function find(id) { return turns.find(t => t.id === id) || null; }
 
@@ -20,20 +26,36 @@
       isLoading() { return turns.some(t => t.status === "loading"); },
 
       // 질문 추가. 이미 loading 턴이 있으면 null 을 돌려주고 아무것도 바꾸지 않는다.
-      ask(question) {
+      // skipClarify 는 선택지를 고른 뒤 보내는 두 번째 질문에 붙인다.
+      ask(question, { skipClarify = false } = {}) {
         if (this.isLoading()) return null;
         const id = `turn-${++seq}`;
-        turns.push({ id, question, status: "loading", data: null, error: null });
+        turns.push({ id, question, status: "loading", data: null, error: null, skipClarify, choice: null });
         return id;
       },
 
-      // 응답 도착. 그 턴을 done 으로 바꾸고 활성으로 만든다. 모드는 바꾸지 않는다.
+      // 응답 도착. 되묻기(type === "clarify")면 clarify 상태로 두고 활성은 바꾸지 않는다.
+      // 그 외는 done 으로 바꾸고 활성으로 만든다. 모드는 바꾸지 않는다.
       // 모르는 id 나 loading 이 아닌 턴이면 false.
       resolve(id, data) {
         const t = find(id);
         if (!t || t.status !== "loading") return false;
-        t.status = "done"; t.data = data; activeId = id;
+        t.data = data;
+        if (data && data.type === "clarify") {
+          t.status = "clarify";
+        } else {
+          t.status = "done"; activeId = id;
+        }
         return true;
+      },
+
+      // 되묻기 선택지 고르기. clarify 턴에서 처음 한 번만 받고, 다시 보낼 합친 질문을 돌려준다.
+      // 아니면 null.
+      choose(id, option) {
+        const t = find(id);
+        if (!t || t.status !== "clarify" || t.choice !== null) return null;
+        t.choice = option;
+        return composeRefinedQuestion(t.question, option);
       },
 
       // 실패. 활성은 바꾸지 않는다. 모르는 id 나 loading 이 아닌 턴이면 false.
@@ -61,6 +83,6 @@
     };
   }
 
-  const ChatStore = { createChatStore };
+  const ChatStore = { createChatStore, composeRefinedQuestion };
   if (typeof module !== "undefined") module.exports = ChatStore; else window.ChatStore = ChatStore;
 })();
