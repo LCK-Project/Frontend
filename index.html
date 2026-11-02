@@ -5,6 +5,7 @@
   <script src="config.js"></script>
   <script src="assets/graph-utils.js"></script>
   <script src="assets/chat-store.js"></script>
+  <script src="assets/markdown-lite.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LCK Knowledge Graph Dashboard</title>
@@ -613,6 +614,56 @@
       background: #fef2f2;
       border-color: #fecaca;
       color: #991b1b;
+    }
+
+    /* LLM 답변의 가벼운 마크다운 (markdown-lite.js 출력) */
+    .md { white-space: normal; }
+    .md p { margin: 0 0 8px; }
+    .md p:last-child { margin-bottom: 0; }
+    .md h3, .md h4, .md h5, .md h6 { margin: 10px 0 6px; font-size: 14px; color: #92400e; }
+    .md h3 { font-size: 15px; }
+    .md ul, .md ol { margin: 0 0 8px; padding-left: 20px; }
+    .md li { margin: 2px 0; }
+    .md code { font-size: 12px; background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+    .answer-box.md { white-space: normal; }
+
+    /* 범위 되묻기 말풍선의 선택지 칩 */
+    .bubble-a.clarify {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .clarify-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .clarify-chip {
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #92400e;
+      border: 1px solid #fed7aa;
+    }
+
+    .clarify-chip:hover:not(:disabled) {
+      background: #ffedd5;
+    }
+
+    .clarify-chip:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .clarify-chip.chosen {
+      opacity: 1;
+      background: #f59e0b;
+      color: #ffffff;
+      border-color: #d97706;
     }
 
     .analyze-btn {
@@ -1526,9 +1577,11 @@
       document.getElementById("statArticles").innerText = stats.articleCount;
     }
 
-    async function loadAsk(question) {
+    async function loadAsk(question, skipClarify = false, scope = null) {
       if (MOCK) {
-        const response = await fetch("fixtures/ask_sample.json");
+        // 목 모드: 범위(연도)가 없는 첫 질문은 되묻기 픽스처, 그 외는 답변 픽스처
+        const clarify = !skipClarify && !/20\d{2}/.test(question);
+        const response = await fetch(clarify ? "fixtures/clarify_sample.json" : "fixtures/ask_sample.json");
         if (!response.ok) throw new Error(`픽스처 로드 실패: ${response.status}`);
         return response.json();
       }
@@ -1538,7 +1591,7 @@
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question, skip_clarify: skipClarify, scope })
       });
       if (!response.ok) throw new Error(`/ask 요청 실패: ${response.status}`);
       return response.json();
@@ -1648,9 +1701,31 @@
         } else if (turn.status === "error") {
           a.classList.add("error");
           a.innerText = turn.error;
+        } else if (turn.status === "clarify") {
+          // 범위 되묻기: 문장 + 선택지 칩. 고른 뒤에는 칩이 잠기고 고른 것만 표시된다.
+          a.classList.add("clarify");
+          const prompt = document.createElement("div");
+          prompt.innerText = turn.data.clarify.prompt;
+          a.appendChild(prompt);
+          const chips = document.createElement("div");
+          chips.className = "clarify-options";
+          (turn.data.clarify.options || []).forEach(option => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "clarify-chip" + (turn.choice === option ? " chosen" : "");
+            chip.innerText = option;
+            chip.disabled = turn.choice !== null || chat.isLoading();
+            chip.addEventListener("click", () => {
+              const refined = chat.choose(turn.id, option);
+              if (refined) askQuestion(refined.question, { skipClarify: true, scope: refined.scope });
+            });
+            chips.appendChild(chip);
+          });
+          a.appendChild(chips);
         } else {
           const body = document.createElement("div");
-          body.innerText = turn.data.answer || "답변을 생성하지 못했습니다.";
+          body.className = "md";
+          body.innerHTML = MarkdownLite.render(turn.data.answer || "답변을 생성하지 못했습니다.");
           a.appendChild(body);
 
           const btn = document.createElement("button");
@@ -1695,8 +1770,8 @@
       document.getElementById("analysisQuestionText").innerText = turn.question;
 
       const answerDiv = document.getElementById("answer");
-      answerDiv.className = "answer-box";
-      answerDiv.innerText = data.answer || "답변을 생성하지 못했습니다.";
+      answerDiv.className = "answer-box md";
+      answerDiv.innerHTML = MarkdownLite.render(data.answer || "답변을 생성하지 못했습니다.");
 
       resetNodeDetail();
       renderStats(data);
@@ -1711,15 +1786,17 @@
       document.getElementById("queryStatus").innerText = `질문 분석 완료: ${turn.question}`;
     }
 
-    async function askQuestion() {
+    // text 를 주면 그 문장을 보내고(되묻기 선택지), 없으면 입력창 내용을 보낸다.
+    async function askQuestion(text, { skipClarify = false, scope = null } = {}) {
       const input = document.getElementById("question");
-      const question = input.value.trim();
+      const fromInput = typeof text !== "string";
+      const question = (fromInput ? input.value : text).trim();
       if (!question) return;
 
-      const id = chat.ask(question);
+      const id = chat.ask(question, { skipClarify, scope });
       if (!id) return; // 이미 답변을 기다리는 중
 
-      input.value = "";
+      if (fromInput) input.value = "";
       renderChat();
 
       const queryStatus = document.getElementById("queryStatus");
@@ -1728,7 +1805,7 @@
       apiStatus.innerText = MOCK ? "목 픽스처 로드 중" : "API 요청 중";
 
       try {
-        const data = await loadAsk(question);
+        const data = await loadAsk(question, skipClarify, scope);
         console.log("ASK RESPONSE:", data);
         chat.resolve(id, data);
         apiStatus.innerText = MOCK ? "목 모드 (픽스처)" : "API 연결 완료";

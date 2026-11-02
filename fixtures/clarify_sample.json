@@ -1,0 +1,20 @@
+{
+  "type": "clarify",
+  "question": "T1의 전략이 궁금해",
+  "intent": "T1 의 경기 전략을 알고 싶다",
+  "clarify": {
+    "axis": "tournament",
+    "prompt": "어느 대회 기준으로 알아볼까요?",
+    "template": "{question} ({option} 기준)",
+    "options": [
+      "2026 LCK Rounds 3-4",
+      "2026 LCK Rounds 1-2",
+      "2026 LCK Cup",
+      "2025 LCK Rounds 3-5",
+      "2025 LCK Rounds 1-2",
+      "2025 LCK Cup",
+      "2024 LCK Summer",
+      "2024 LCK Spring"
+    ]
+  }
+}

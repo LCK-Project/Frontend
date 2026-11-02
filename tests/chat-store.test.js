@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createChatStore } = require("../assets/chat-store.js");
+const { createChatStore, composeRefinedQuestion } = require("../assets/chat-store.js");
 const ask = require("../fixtures/ask_sample.json");
 
 test("initial_state", () => {
@@ -12,7 +12,7 @@ test("ask_adds_loading_turn", () => {
   const s = createChatStore();
   assert.equal(s.ask("q"), "turn-1");
   const st = s.state();
-  assert.deepEqual(st.turns[0], { id: "turn-1", question: "q", status: "loading", data: null, error: null });
+  assert.deepEqual(st.turns[0], { id: "turn-1", question: "q", status: "loading", data: null, error: null, skipClarify: false, scope: null, choice: null });
   assert.equal(st.activeId, null);
 });
 
@@ -112,4 +112,85 @@ test("activeTurn_null_until_resolve", () => {
   assert.equal(s.activeTurn(), null);
   s.resolve(id, ask);
   assert.equal(s.activeTurn().id, "turn-1");
+});
+
+// ---------- 범위 되묻기 ----------
+const clarify = require("../fixtures/clarify_sample.json");
+
+test("ask_records_skipClarify", () => {
+  const s = createChatStore();
+  s.resolve(s.ask("q1"), ask);
+  assert.equal(s.state().turns[0].skipClarify, false);
+  s.ask("q2", { skipClarify: true });
+  assert.equal(s.state().turns[1].skipClarify, true);
+});
+
+test("resolve_clarify_keeps_active", () => {
+  const s = createChatStore();
+  s.resolve(s.ask("q1"), ask);
+  const id2 = s.ask("q2");
+  assert.equal(s.resolve(id2, clarify), true);
+  const st = s.state();
+  assert.equal(st.turns[1].status, "clarify");
+  assert.equal(st.turns[1].data, clarify);
+  assert.equal(st.activeId, "turn-1");
+  assert.equal(s.isLoading(), false);
+});
+
+test("choose_returns_composed_question_once", () => {
+  const s = createChatStore();
+  s.resolve(s.ask("q1"), ask);
+  const id2 = s.ask("q2");
+  s.resolve(id2, clarify);
+  assert.deepEqual(s.choose(id2, "2025 LCK Cup"), { question: "q2 (2025 LCK Cup 기준)", scope: { axis: "tournament", value: "2025 LCK Cup" } });
+  assert.equal(s.state().turns[1].choice, "2025 LCK Cup");
+  assert.equal(s.choose(id2, "2026 LCK Cup"), null);
+  assert.equal(s.state().turns[1].choice, "2025 LCK Cup");
+});
+
+test("choose_rejects_non_clarify", () => {
+  const s = createChatStore();
+  const id1 = s.ask("q1");
+  assert.equal(s.choose(id1, "x"), null);
+  s.resolve(id1, ask);
+  assert.equal(s.choose(id1, "x"), null);
+  assert.equal(s.choose("nope", "x"), null);
+});
+
+test("activate_rejects_clarify", () => {
+  const s = createChatStore();
+  s.resolve(s.ask("q1"), ask);
+  const id2 = s.ask("q2");
+  s.resolve(id2, clarify);
+  assert.equal(s.activate(id2), false);
+  const st = s.state();
+  assert.equal(st.activeId, "turn-1");
+  assert.equal(st.mode, "chat");
+});
+
+test("composeRefinedQuestion", () => {
+  assert.equal(composeRefinedQuestion("T1의 전략이 궁금해", "2025 LCK Cup"), "T1의 전략이 궁금해 (2025 LCK Cup 기준)");
+  assert.equal(composeRefinedQuestion("T1 전적 알려줘", "젠지 이스포츠", "{question} ({option} 상대 기준)"), "T1 전적 알려줘 (젠지 이스포츠 상대 기준)");
+  // 자리가 빠진 형식은 기본 형식으로
+  assert.equal(composeRefinedQuestion("q", "x", "이상한 형식"), "q (x 기준)");
+});
+
+test("choose_uses_template_from_response", () => {
+  const s = createChatStore();
+  const id = s.ask("T1 어때?");
+  s.resolve(id, { type: "clarify", clarify: { axis: "topic", prompt: "T1의 무엇이 궁금하세요?", template: "{question} ({option} 중심으로)", options: ["성적", "로스터"] } });
+  assert.deepEqual(s.choose(id, "로스터"), { question: "T1 어때? (로스터 중심으로)", scope: { axis: "topic", value: "로스터" } });
+});
+
+test("ask_records_scope", () => {
+  const s = createChatStore();
+  s.ask("q", { skipClarify: true, scope: { axis: "season", value: "2024" } });
+  assert.deepEqual(s.state().turns[0].scope, { axis: "season", value: "2024" });
+});
+
+test("clarify_fixture_shape", () => {
+  assert.equal(clarify.type, "clarify");
+  assert.ok(["tournament", "season"].includes(clarify.clarify.axis));
+  assert.ok(typeof clarify.clarify.prompt === "string" && clarify.clarify.prompt.length > 0);
+  assert.ok(Array.isArray(clarify.clarify.options) && clarify.clarify.options.length >= 2);
 });
