@@ -234,15 +234,62 @@
       min-width: 0;
     }
 
+    /* 관계 필터 칩은 왼쪽, 노드 색상 범례는 오른쪽. 좁으면 줄바꿈한다 */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px 16px;
+      margin-bottom: 10px;
+    }
+
     .filter-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 10px;
     }
 
     .filter-chips:empty {
       display: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 10px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .legend:empty {
+      display: none;
+    }
+
+    .legend-title {
+      font-weight: 700;
+      color: #9ca3af;
+      margin-right: 2px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid;
+      flex: none;
+    }
+
+    .legend-count {
+      color: #9ca3af;
     }
 
     .chip {
@@ -942,7 +989,10 @@
           </div>
         </aside>
         <div class="graph-main">
-          <div id="filterChips" class="filter-chips"></div>
+          <div class="chip-row">
+            <div id="filterChips" class="filter-chips"></div>
+            <div id="legend" class="legend" aria-label="노드 색상 범례"></div>
+          </div>
           <div id="graph" class="graph-box"></div>
           <div class="date-strip">
             <svg id="dateStrip" height="56" role="img" aria-label="경기 날짜 스트립"></svg>
@@ -1467,6 +1517,37 @@
         box.appendChild(button);
       });
       applyRelationFilter(FILTER_ALL);
+      renderLegend(graph);
+    }
+
+    // 노드 색상 범례. 지금 그래프에 있는 라벨만, 많은 순으로 보여준다.
+    function renderLegend(graph) {
+      const box = document.getElementById("legend");
+      box.innerHTML = "";
+      const nodes = (graph && graph.nodes) || [];
+      if (nodes.length === 0) return;
+
+      const counts = {};
+      nodes.forEach(node => {
+        const label = node.label || "Entity";
+        counts[label] = (counts[label] || 0) + 1;
+      });
+      const labels = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+
+      const title = document.createElement("span");
+      title.className = "legend-title";
+      title.innerText = "노드 색";
+      box.appendChild(title);
+
+      labels.forEach(label => {
+        const color = groupColor(label);
+        const item = document.createElement("span");
+        item.className = "legend-item";
+        item.innerHTML =
+          `<span class="legend-dot" style="background:${color.background};border-color:${color.border}"></span>` +
+          `${escapeHtml(GraphUtils.labelKo(label))}<span class="legend-count">${counts[label]}</span>`;
+        box.appendChild(item);
+      });
     }
 
     // 선택한 묶음에 속하지 않는 간선과, 보이는 간선에 닿지 않는 노드를 숨긴다.
