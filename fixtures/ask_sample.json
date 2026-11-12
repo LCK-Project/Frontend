@@ -446,97 +446,193 @@
         "source": "mock:3",
         "target": "mock:1",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-09-30"
+          ]
+        ]
       },
       {
         "source": "mock:4",
         "target": "mock:1",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-09-30"
+          ]
+        ]
       },
       {
         "source": "mock:5",
         "target": "mock:1",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-09-30"
+          ]
+        ]
       },
       {
         "source": "mock:6",
         "target": "mock:1",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-04-30"
+          ]
+        ]
       },
       {
         "source": "mock:7",
         "target": "mock:1",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-05-01",
+            null
+          ]
+        ]
       },
       {
         "source": "mock:8",
         "target": "mock:2",
         "type": "MEMBER_OF",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-09-30"
+          ]
+        ]
       },
       {
         "source": "mock:16",
         "target": "mock:1",
         "type": "WORKED_FOR",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-01",
+            "2025-09-30"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:9",
         "type": "WON_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:2",
         "target": "mock:9",
         "type": "LOST_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:10",
         "type": "WON_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-08-30",
+            "2025-08-30"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:11",
         "type": "WON_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-04-20",
+            "2025-04-20"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:12",
         "type": "LOST_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-01-15",
+            "2025-01-15"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:9",
         "type": "PLAYED_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:2",
         "target": "mock:9",
         "type": "PLAYED_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:10",
         "type": "PLAYED_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-08-30",
+            "2025-08-30"
+          ]
+        ]
       },
       {
         "source": "mock:1",
         "target": "mock:11",
         "type": "PLAYED_MATCH",
-        "evidence": null
+        "evidence": null,
+        "when": [
+          [
+            "2025-04-20",
+            "2025-04-20"
+          ]
+        ]
       },
       {
         "source": "mock:3",
@@ -546,7 +642,17 @@
           "article_key": "ARTICLE_MOCK_17",
           "text": "제카는 아지르를 꺼내 들어 한타 구도를 주도했다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-04-20",
+            "2025-04-20"
+          ],
+          [
+            "2025-08-30",
+            "2025-08-30"
+          ]
+        ]
       },
       {
         "source": "mock:4",
@@ -556,7 +662,13 @@
           "article_key": "ARTICLE_MOCK_18",
           "text": "바이퍼는 바루스로 라인전 단계부터 주도권을 잡았다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-04-20",
+            "2025-04-20"
+          ]
+        ]
       },
       {
         "source": "mock:8",
@@ -566,7 +678,13 @@
           "article_key": "ARTICLE_MOCK_19",
           "text": "쵸비는 오리아나를 선택해 후반 한타를 준비했다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:1",
@@ -576,7 +694,13 @@
           "article_key": "ARTICLE_MOCK_20",
           "text": "한화생명은 전령을 확보해 미드 1차 포탑을 먼저 밀었다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-04-20",
+            "2025-04-20"
+          ]
+        ]
       },
       {
         "source": "mock:1",
@@ -586,7 +710,13 @@
           "article_key": "ARTICLE_MOCK_21",
           "text": "한화생명 이스포츠는 젠지 이스포츠를 세트 스코어 3대1로 꺾었다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:9",
@@ -596,7 +726,13 @@
           "article_key": "ARTICLE_MOCK_22",
           "text": "이 경기는 LCK 2025 Summer 플레이오프 일정으로 치러졌다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-09-06",
+            "2025-09-06"
+          ]
+        ]
       },
       {
         "source": "mock:1",
@@ -606,7 +742,8 @@
           "article_key": "ARTICLE_MOCK_23",
           "text": "한화생명 이스포츠는 LCK 2025 Summer에 참가했다.",
           "confidence": 1
-        }
+        },
+        "when": null
       },
       {
         "source": "mock:6",
@@ -616,7 +753,32 @@
           "article_key": "ARTICLE_MOCK_24",
           "text": "피넛은 전령 앞 교전에서 강타 싸움을 이기며 오브젝트를 챙겼다.",
           "confidence": 1
-        }
+        },
+        "when": [
+          [
+            "2025-01-15",
+            "2025-01-15"
+          ]
+        ]
+      }
+    ]
+  },
+  "timeline": {
+    "tournaments": [
+      {
+        "name": "2025 LCK Cup",
+        "start": "2025-01-15",
+        "end": "2025-02-23"
+      },
+      {
+        "name": "2025 LCK Rounds 1-2",
+        "start": "2025-04-02",
+        "end": "2025-06-01"
+      },
+      {
+        "name": "2025 LCK Rounds 3-5",
+        "start": "2025-07-23",
+        "end": "2025-09-06"
       }
     ]
   },
