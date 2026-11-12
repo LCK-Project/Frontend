@@ -118,26 +118,144 @@
     };
   }
 
-  function dateStripLayout(nodes, width, pad) {
+  // ===== 날짜 스트립 범위 선택 =====
+  // 설계: docs/specs/2026-11-12-range-strip-design.md 5절. 달 키는 "YYYY-MM" 문자열이다.
+
+  function monthIndex(key) {
+    return Number(key.slice(0, 4)) * 12 + Number(key.slice(5, 7)) - 1;
+  }
+
+  function monthKeyOf(index) {
+    return `${Math.floor(index / 12)}-${String(index % 12 + 1).padStart(2, "0")}`;
+  }
+
+  function daysInMonth(key) {
+    return new Date(Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)), 0)).getUTCDate();
+  }
+
+  // 축은 날짜 있는 경기의 첫 달부터 끝 달까지이고 달마다 같은 폭의 칸을 준다.
+  // 대회 띠는 걸친 달 칸의 양끝에 맞추고 축 밖은 잘라 낸다.
+  function rangeStripLayout(nodes, tournaments, width, pad) {
     const dated = nodes
       .filter(isDatedMatch)
-      .map(node => ({ id: node.id, date: node.match_date.slice(0, 10), t: Date.parse(node.match_date.slice(0, 10)) }))
-      .filter(point => !Number.isNaN(point.t))
-      .sort((a, b) => a.t - b.t);
-    if (dated.length === 0) return { points: [], minLabel: null, maxLabel: null };
+      .map(node => ({ id: node.id, date: node.match_date.slice(0, 10) }))
+      .filter(point => !Number.isNaN(Date.parse(point.date)))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    if (dated.length === 0) return { months: [], points: [], bands: [], pad, cell: 0 };
 
-    const tmin = dated[0].t;
-    const tmax = dated[dated.length - 1].t;
-    const points = dated.map(point => ({
-      id: point.id,
-      x: tmax === tmin ? width / 2 : pad + (point.t - tmin) / (tmax - tmin) * (width - 2 * pad),
-      date: point.date
-    }));
-    return {
-      points,
-      minLabel: monthLabel(dated[0].date),
-      maxLabel: monthLabel(dated[dated.length - 1].date)
-    };
+    const first = monthIndex(dated[0].date);
+    const last = monthIndex(dated[dated.length - 1].date);
+    const cell = (width - 2 * pad) / (last - first + 1);
+    const cellX = index => pad + (index - first) * cell;
+
+    const months = [];
+    for (let index = first; index <= last; index += 1) {
+      months.push({ key: monthKeyOf(index), x: cellX(index), w: cell });
+    }
+    const points = dated.map(point => {
+      const key = point.date.slice(0, 7);
+      const day = Number(point.date.slice(8, 10));
+      return { id: point.id, date: point.date, month: key, x: cellX(monthIndex(key)) + (day - 1) / daysInMonth(key) * cell };
+    });
+    const bands = [];
+    for (const item of tournaments || []) {
+      if (!item || typeof item.start !== "string" || typeof item.end !== "string") continue;
+      const start = monthIndex(item.start);
+      const end = monthIndex(item.end);
+      if (Number.isNaN(start) || Number.isNaN(end) || end < first || start > last) continue;
+      const from = Math.max(start, first);
+      const to = Math.min(end, last);
+      bands.push({ name: item.name, x: cellX(from), w: (to - from + 1) * cell, from: monthKeyOf(from), to: monthKeyOf(to) });
+    }
+    return { months, points, bands, pad, cell };
+  }
+
+  // x 좌표가 속한 달. 축 밖이면 가까운 끝 달이다.
+  function monthAtX(layout, x) {
+    if (layout.months.length === 0) return null;
+    const index = Math.floor((x - layout.pad) / layout.cell);
+    return layout.months[Math.min(layout.months.length - 1, Math.max(0, index))].key;
+  }
+
+  // 두 달을 순서대로 정렬하고 축 범위로 자른다. 축이 없거나 형식이 틀리면 null.
+  function normalizeRange(a, b, layout) {
+    const valid = key => typeof key === "string" && /^\d{4}-\d{2}$/.test(key);
+    if (layout.months.length === 0 || !valid(a) || !valid(b)) return null;
+    const first = layout.months[0].key;
+    const last = layout.months[layout.months.length - 1].key;
+    const clamp = key => (key < first ? first : key > last ? last : key);
+    const from = clamp(a < b ? a : b);
+    const to = clamp(a < b ? b : a);
+    return { from, to };
+  }
+
+  // 간선이 고른 기간(달 단위, 양끝 포함)에 걸치는가.
+  // link.when 은 [시작일, 종료일] 구간 목록이다. 종료일이 null 이면 지금까지 이어지는 구간이다.
+  // when 이 null 이거나 비어 있으면 날짜를 알 수 없는 관계이므로 항상 보인다.
+  // when 필드가 아예 없는 옛 응답은 양끝 경기 노드의 날짜로 대신 판정한다.
+  const OPEN_FROM = "0000-01";
+  const OPEN_TO = "9999-12";
+
+  function linkInRange(link, range, nodesById) {
+    let when = link.when;
+    if (when === undefined) {
+      when = [link.source, link.target]
+        .map(id => nodesById[id])
+        .filter(node => node && isDatedMatch(node))
+        .map(node => [node.match_date, node.match_date]);
+    }
+    if (!Array.isArray(when) || when.length === 0) return true;
+    return when.some(span => {
+      const from = span[0] ? span[0].slice(0, 7) : OPEN_FROM;
+      const to = span[1] ? span[1].slice(0, 7) : OPEN_TO;
+      return from <= range.to && to >= range.from;
+    });
+  }
+
+  // 기간 선택으로 보이는 간선·노드. range 가 null 이면 전부다.
+  // 기간에 걸치지 않는 간선을 숨기고, 그 때문에 간선을 모두 잃은 노드도 숨긴다.
+  // 시드 노드와 원래 간선이 없던 노드는 남긴다.
+  function visibleSetForRange(graph, range) {
+    const linkKeys = new Set();
+    const nodeIds = new Set();
+    if (!range) {
+      for (const link of graph.links) linkKeys.add(linkKey(link));
+      for (const node of graph.nodes) nodeIds.add(node.id);
+      return { linkKeys, nodeIds };
+    }
+    const nodesById = Object.fromEntries(graph.nodes.map(node => [node.id, node]));
+    const hadLink = new Set();
+    const hasLink = new Set();
+    for (const link of graph.links) {
+      hadLink.add(link.source);
+      hadLink.add(link.target);
+      if (!linkInRange(link, range, nodesById)) continue;
+      linkKeys.add(linkKey(link));
+      hasLink.add(link.source);
+      hasLink.add(link.target);
+    }
+    for (const node of graph.nodes) {
+      if (node.is_seed === true || !hadLink.has(node.id) || hasLink.has(node.id)) nodeIds.add(node.id);
+    }
+    return { linkKeys, nodeIds };
+  }
+
+  // 관계 필터와 기간 선택을 함께 적용한다. 필터가 "전체" 가 아니면 두 조건을 모두 만족하는
+  // 간선과 그 양끝 노드만 보인다.
+  function visibleSet(graph, groupName, range, relGroups) {
+    const byRange = visibleSetForRange(graph, range);
+    if (groupName === ALL_GROUP) return byRange;
+    const byGroup = visibleSetForGroup(graph, groupName, relGroups);
+    const linkKeys = new Set();
+    const nodeIds = new Set();
+    for (const link of graph.links) {
+      const key = linkKey(link);
+      if (!byRange.linkKeys.has(key) || !byGroup.linkKeys.has(key)) continue;
+      linkKeys.add(key);
+      nodeIds.add(link.source);
+      nodeIds.add(link.target);
+    }
+    return { linkKeys, nodeIds };
   }
 
   function localNodeDetail(nodeId, graph) {
@@ -180,6 +298,27 @@
     return { sourceId: findId(fact.source), targetId: findId(fact.target) };
   }
 
+  // 관계 묶음별 간선 수. linkKeys 를 주면 그 안에 있는 간선만 센다(기간 선택으로 보이는 간선).
+  function groupCounts(graph, relGroups, linkKeys) {
+    const nodesById = Object.fromEntries(graph.nodes.map(node => [node.id, node]));
+    const counts = { [ALL_GROUP]: 0 };
+    for (const group of relGroups) counts[group.name] = 0;
+    for (const link of graph.links) {
+      if (linkKeys && !linkKeys.has(linkKey(link))) continue;
+      counts[ALL_GROUP] += 1;
+      counts[classifyRelation(link, nodesById, relGroups)] += 1;
+    }
+    return counts;
+  }
+
+  // 근거 카드(사실)에 대응하는 간선 키. 양끝 이름이 그래프에 없거나 그런 간선이 없으면 null.
+  function factLinkKey(fact, graph) {
+    const { sourceId, targetId } = factNodeIds(fact, graph.nodes);
+    if (sourceId === null || targetId === null) return null;
+    const key = `${sourceId}|${targetId}|${fact.relation}`;
+    return graph.links.some(link => linkKey(link) === key) ? key : null;
+  }
+
   const GraphUtils = {
     classifyRelation,
     visibleSetForGroup,
@@ -187,9 +326,16 @@
     railSubtitle,
     labelKo,
     computeStats,
-    dateStripLayout,
+    rangeStripLayout,
+    monthAtX,
+    normalizeRange,
+    linkInRange,
+    visibleSetForRange,
+    visibleSet,
     localNodeDetail,
     factNodeIds,
+    groupCounts,
+    factLinkKey,
     REL_GROUPS,
     LABEL_KO
   };
